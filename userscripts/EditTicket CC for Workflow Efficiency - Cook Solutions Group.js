@@ -5,7 +5,7 @@
 // @grant       none
 // @version     1.0
 // @author      John Ivan Chan & Angel H. Lule Beltran
-// @description Makes CC 7/23/25, 11:25
+// @description Makes CC 7/27/25, 01:47
 // ==/UserScript==
 
 
@@ -70,7 +70,10 @@ function getLabelFromTitle(){
       'no withdrawals dispatch'
     ],
     "No Transaction Activity" : [
-      "Notification for ACTMON"
+      "Notification for ACTMON",
+      "Business Rule : No Transactions Activity, Fault Descr : No transaction activity",
+      "ATM Processing Transactions",
+      "ATM Inactive greater than"
     ],
     "Lost Comms": [
       "comm dispatch",
@@ -83,12 +86,16 @@ function getLabelFromTitle(){
       "(5003, critical)",
       "(113, info)",
       "(5004, suspect)",
-      "status='C7'"
+      "status='C7'",
+      "Terminal Off Line As Of",
+      "Terminal Closed As Of",
+      "Category: Supervisor Dispatch"
     ],
     "Depositor": [
       "Depository Dispatch",
       "Business Rule : Device Fault, Fault Descr : Depository down",
-      "Notification for DEPOSITORY FAILURE"
+      "Notification for DEPOSITORY FAILURE",
+      "(2009, critical)"
     ],
     "Dispenser": [
       "Dispenser Dispatch",
@@ -98,20 +105,37 @@ function getLabelFromTitle(){
       "status='0010'",
       "status='0008'",
       "(2001, critical)",
-      "(2005, critical)"
+      "(2005, critical)",
+      "Notification for DIVERT FAILURE",
+      "Category: Cash Out Dispatch",
+      "Business Rule : Device Fault, Fault Descr : Canister"
     ],
     "Printer": [
       "Receipt Printer Dispatch",
       "(2047, critical)",
-      "Business Rule : Device Fault, Fault Descr : Cons prt head jam/go busy fail"
+      "Business Rule : Device Fault, Fault Descr : Cons prt head jam/go busy fail",
+      "Business Rule : Device Fault, Fault Descr : Cons prt paper not load or jam",
+      "Business Rule : Printer Paper Other Supply Problems, Fault Descr : Consumer printer fault",
+      "Business Rule : Device Fault, Fault Descr : Consumer prt paper jam"
     ],
     "Card Reader": [
       "Card reader Dispatch",
       "Business Rule : Out of Service, Fault Descr : Card reader fault",
-      "Notification for EMV CARD READER FAILURE"
+      "Notification for EMV CARD READER FAILURE",
+      "(2280, suspect)",
+      "(2020, critical)"
     ],
     "Cassette":[
-      "status='0016'"
+      "status='0016'",
+      "Cassettes of type",
+      "(50, critical)"
+    ],
+    "EPP": [
+      "Business Rule : Out of Service, Fault Descr : Encryptor down"
+    ],
+    "Anti Skimming" : [
+      "Business Rule : Out of Service, Fault Descr : Card skimming fraud detected Hard Fault",
+      "Category: Security Dispatch"
     ]
   };
 
@@ -219,7 +243,8 @@ function setStatusToInProgress(){
 
   const emptyTicket = checkResources();
   // If the value was found, change state to in progress & the resource list was empty
-  if(inProgressOption & emptyTicket){
+  console.log("empty ticket", emptyTicket);
+  if(inProgressOption){
     statusDropDown.value = inProgressOption.value;
 
     // Play around with this and see if it matters to keep; might be imporant to have that time buffer as the rest of the options appear
