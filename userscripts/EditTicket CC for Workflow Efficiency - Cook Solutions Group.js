@@ -7,7 +7,7 @@
 // @author      John Ivan Chan & Angel H. Lule Beltran
 // @updateURL   https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
 // @downloadURL https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
-// @description Makes CC 8/1/25 03:58
+// @description Makes CC 7/23/25, 11:25
 // ==/UserScript==
 
 
@@ -363,6 +363,7 @@ document.addEventListener('keydown', function(event){
 
     if(isVisible){
       console.log("Pressed ctrl + q when modal was visible!");
+      SubmitNotes(true);
     }
     else{
       console.log("Pressed ctrl + q when modal was not visible!");
