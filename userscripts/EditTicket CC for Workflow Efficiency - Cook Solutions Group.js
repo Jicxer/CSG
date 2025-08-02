@@ -3,11 +3,11 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://cc.cooksolutionsgroup.com/Support/Support/EditTicket*
 // @grant       none
-// @version     1.0
+// @version     1.1
 // @author      John Ivan Chan & Angel H. Lule Beltran
 // @updateURL   https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
 // @downloadURL https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
-// @description Makes CC 7/23/25, 11:25
+// @description Makes CC 8/2/25 5:55
 // ==/UserScript==
 
 
@@ -98,7 +98,10 @@ function getLabelFromTitle(){
       "Business Rule : Device Fault, Fault Descr : Depository down",
       "Notification for DEPOSITORY FAILURE",
       "(2009, critical)",
-      "Notification for CK/MICR READER FAILURE for Device"
+      "Notification for CK/MICR READER FAILURE for Device",
+      " (2211, suspect)",
+      "Business Rule : Device Fault, Fault Descr : Envelope printer down",
+      "Business Rule : Device Fault, Fault Descr : Document depository down"
     ],
     "Dispenser": [
       "Dispenser Dispatch",
@@ -127,7 +130,8 @@ function getLabelFromTitle(){
       "Business Rule : Out of Service, Fault Descr : Card reader fault",
       "Notification for EMV CARD READER FAILURE",
       "(2280, suspect)",
-      "(2020, critical)"
+      "(2020, critical)",
+      "(2281, critical)"
     ],
     "Cassette":[
       "status='0016'",
@@ -355,18 +359,18 @@ document.addEventListener('keydown', function(event) {
 
 
 document.addEventListener('keydown', function(event){
-  if(event.ctrlKey && event.key === 'q'){
+  if(event.ctrlKey && event.key === 'x'){
     event.preventDefault();
 
     const modal = document.querySelector('#modal-addnote');
     const isVisible = modal && !modal.classList.contains('mfp-hide');
 
     if(isVisible){
-      console.log("Pressed ctrl + q when modal was visible!");
+      console.log("Pressed ctrl + x when modal was visible!");
       SubmitNotes(true);
     }
     else{
-      console.log("Pressed ctrl + q when modal was not visible!");
+      console.log("Pressed ctrl + x when modal was not visible!");
       addSupportNotes(true);
     }
   }
