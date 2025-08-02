@@ -3,14 +3,15 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://cc.cooksolutionsgroup.com/Support/Support/EditTicket*
 // @grant       none
-// @version     1.0
+// @version     1.1
 // @author      John Ivan Chan & Angel H. Lule Beltran
-// @description Makes CC 7/27/25, 01:47
+// @updateURL   https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
+// @downloadURL https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
+// @description Makes CC 8/2/25 5:55
 // ==/UserScript==
 
 
 "use strict";
-
 //=======================================================
 // Start: Click save button helper function
 //=======================================================
@@ -23,6 +24,7 @@ function clickSaveButton(){
 
 //=======================================================
 // Start: Helper function for checking if there's a resource
+// Not yet used.
 //=======================================================
 function checkResources(){
   const resourceTable = document.getElementById('tblResources');
@@ -95,7 +97,11 @@ function getLabelFromTitle(){
       "Depository Dispatch",
       "Business Rule : Device Fault, Fault Descr : Depository down",
       "Notification for DEPOSITORY FAILURE",
-      "(2009, critical)"
+      "(2009, critical)",
+      "Notification for CK/MICR READER FAILURE for Device",
+      " (2211, suspect)",
+      "Business Rule : Device Fault, Fault Descr : Envelope printer down",
+      "Business Rule : Device Fault, Fault Descr : Document depository down"
     ],
     "Dispenser": [
       "Dispenser Dispatch",
@@ -108,7 +114,8 @@ function getLabelFromTitle(){
       "(2005, critical)",
       "Notification for DIVERT FAILURE",
       "Category: Cash Out Dispatch",
-      "Business Rule : Device Fault, Fault Descr : Canister"
+      "Business Rule : Device Fault, Fault Descr : Canister",
+      "Business Rule : Device Fault, Fault Descr : Cash hand bills not seen exit"
     ],
     "Printer": [
       "Receipt Printer Dispatch",
@@ -123,7 +130,8 @@ function getLabelFromTitle(){
       "Business Rule : Out of Service, Fault Descr : Card reader fault",
       "Notification for EMV CARD READER FAILURE",
       "(2280, suspect)",
-      "(2020, critical)"
+      "(2020, critical)",
+      "(2281, critical)"
     ],
     "Cassette":[
       "status='0016'",
@@ -131,11 +139,14 @@ function getLabelFromTitle(){
       "(50, critical)"
     ],
     "EPP": [
-      "Business Rule : Out of Service, Fault Descr : Encryptor down"
+      "Business Rule : Out of Service, Fault Descr : Encryptor down",
+      "Notification for ENCRYPTION FAILURE for Device",
+      "Category: Encryptor Dispatch"
     ],
     "Anti Skimming" : [
       "Business Rule : Out of Service, Fault Descr : Card skimming fraud detected Hard Fault",
-      "Category: Security Dispatch"
+      "Category: Security Dispatch",
+      "(2031, critical)"
     ]
   };
 
@@ -272,6 +283,8 @@ function setStatusToInProgress(){
 function hookAssignButton(){
   const assignButton = document.querySelector(".assigntome");
   const saveButton = document.querySelector('.EditTicket');
+
+
   // If the button exists and no other listeners
   if(assignButton && !assignButton.dataset.handlerAttached) {
     assignButton.addEventListener('click', () => {
@@ -343,6 +356,28 @@ document.addEventListener('keydown', function(event) {
         clickSaveButton();
     }
 });
+
+
+document.addEventListener('keydown', function(event){
+  if(event.ctrlKey && event.key === 'x'){
+    event.preventDefault();
+
+    const modal = document.querySelector('#modal-addnote');
+    const isVisible = modal && !modal.classList.contains('mfp-hide');
+
+    if(isVisible){
+      console.log("Pressed ctrl + x when modal was visible!");
+      SubmitNotes(true);
+    }
+    else{
+      console.log("Pressed ctrl + x when modal was not visible!");
+      addSupportNotes(true);
+    }
+  }
+});
+
+
+
 
 // Set up MutationObserver to observe the DOM
 const bodyObserver = new MutationObserver(() => {
