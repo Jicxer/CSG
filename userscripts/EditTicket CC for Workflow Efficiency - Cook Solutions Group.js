@@ -3,11 +3,11 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://cc.cooksolutionsgroup.com/Support/Support/EditTicket*
 // @grant       none
-// @version     1.1
+// @version     1.2
 // @author      John Ivan Chan & Angel H. Lule Beltran
 // @updateURL   https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
 // @downloadURL https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
-// @description Makes CC 8/2/25 5:55
+// @description Makes CC 8/3/25 4:57
 // ==/UserScript==
 
 
@@ -101,7 +101,8 @@ function getLabelFromTitle(){
       "Notification for CK/MICR READER FAILURE for Device",
       " (2211, suspect)",
       "Business Rule : Device Fault, Fault Descr : Envelope printer down",
-      "Business Rule : Device Fault, Fault Descr : Document depository down"
+      "Business Rule : Device Fault, Fault Descr : Document depository down",
+      "Business Rule : Printer Paper Other Supply Problems, Fault Descr : Depository low/full"
     ],
     "Dispenser": [
       "Dispenser Dispatch",
@@ -115,7 +116,9 @@ function getLabelFromTitle(){
       "Notification for DIVERT FAILURE",
       "Category: Cash Out Dispatch",
       "Business Rule : Device Fault, Fault Descr : Canister",
-      "Business Rule : Device Fault, Fault Descr : Cash hand bills not seen exit"
+      "Business Rule : Device Fault, Fault Descr : Cash hand bills not seen exit",
+      "Notification for DISPENSER FAILURE",
+      "Notification for CASH THRESHOLD LIMIT REACHED"
     ],
     "Printer": [
       "Receipt Printer Dispatch",
@@ -123,7 +126,8 @@ function getLabelFromTitle(){
       "Business Rule : Device Fault, Fault Descr : Cons prt head jam/go busy fail",
       "Business Rule : Device Fault, Fault Descr : Cons prt paper not load or jam",
       "Business Rule : Printer Paper Other Supply Problems, Fault Descr : Consumer printer fault",
-      "Business Rule : Device Fault, Fault Descr : Consumer prt paper jam"
+      "Business Rule : Device Fault, Fault Descr : Consumer prt paper jam",
+      "Notification for RECEIPT PRINTER FAILURE"
     ],
     "Card Reader": [
       "Card reader Dispatch",
@@ -246,6 +250,7 @@ function setStatusToInProgress(){
   const statusDropDown = document.getElementById('ddlStatus');
   if (!statusDropDown){
     console.log("Drop down not found");
+    return;
   }
 
   // Changing in-progress value differs from SAN/ITM&ATM tickets. SAN in progres = 610, ITM/ATM in progress = 153.
@@ -255,23 +260,24 @@ function setStatusToInProgress(){
   const emptyTicket = checkResources();
   // If the value was found, change state to in progress & the resource list was empty
   console.log("empty ticket", emptyTicket);
-  if(inProgressOption){
-    statusDropDown.value = inProgressOption.value;
 
-    // Play around with this and see if it matters to keep; might be imporant to have that time buffer as the rest of the options appear
-    // statusDropDown.dispatchEvent(new Event('change', {bubbles: true}));
-    console.log('Status changed to In Progress');
-    // Change the type and subtype dropdowns
-    console.log('Changing type and subtype dropdowns');
-    autoChangeType();
-    console.log("Changing Item type");
-    selectItem();
-    console.log('Saving ticket state');
-    setTimeout(clickSaveButton, 500);
-  }
-  else{
+  if(!inProgressOption){
     console.log('In Progress option not found');
+    return;
   }
+  statusDropDown.value = inProgressOption.value;
+
+  // Play around with this and see if it matters to keep; might be imporant to have that time buffer as the rest of the options appear
+  // statusDropDown.dispatchEvent(new Event('change', {bubbles: true}));
+  console.log('Status changed to In Progress');
+  // Change the type and subtype dropdowns
+  console.log('Changing type and subtype dropdowns');
+  autoChangeType();
+  console.log("Changing Item type");
+  selectItem();
+  console.log('Saving ticket state');
+  setTimeout(clickSaveButton, 500);
+
 }
 
 /**
@@ -359,18 +365,18 @@ document.addEventListener('keydown', function(event) {
 
 
 document.addEventListener('keydown', function(event){
-  if(event.ctrlKey && event.key === 'x'){
+  if(event.ctrlKey && event.key === 'q'){
     event.preventDefault();
 
     const modal = document.querySelector('#modal-addnote');
     const isVisible = modal && !modal.classList.contains('mfp-hide');
 
     if(isVisible){
-      console.log("Pressed ctrl + x when modal was visible!");
+      console.log("Pressed ctrl + q when modal was visible!");
       SubmitNotes(true);
     }
     else{
-      console.log("Pressed ctrl + x when modal was not visible!");
+      console.log("Pressed ctrl + q when modal was not visible!");
       addSupportNotes(true);
     }
   }
@@ -378,7 +384,7 @@ document.addEventListener('keydown', function(event){
 
 
 
-
+let emptyTicket = null;
 // Set up MutationObserver to observe the DOM
 const bodyObserver = new MutationObserver(() => {
 
@@ -389,11 +395,16 @@ const bodyObserver = new MutationObserver(() => {
     console.log('Add notes modal is visible!');
     handleAddNotesCheckboxes();
   }
-  else {
-    console.log('Addnotes modal hidden now..');
-  }
   // Calling Assign Button & change type and subtype dropdowns.
-  hookAssignButton();
+    setTimeout(() => {
+      emptyTicket = checkResources();
+    }, 1000);
+    console.log('emptyTicket:', emptyTicket);
+    if(!emptyTicket){
+      console.log("Ticket is taken, returning");
+      return;
+    }
+    hookAssignButton();
 });
 
 // Watch all children, direct or not.
