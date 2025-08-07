@@ -3,11 +3,11 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://cc.cooksolutionsgroup.com/Support/Support/EditTicket*
 // @grant       none
-// @version     1.2
+// @version     1.1
 // @author      John Ivan Chan & Angel H. Lule Beltran
 // @updateURL   https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
 // @downloadURL https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
-// @description Makes CC 8/3/25 4:57
+// @description Makes CC 8/3/25 5:31
 // ==/UserScript==
 
 
@@ -250,7 +250,6 @@ function setStatusToInProgress(){
   const statusDropDown = document.getElementById('ddlStatus');
   if (!statusDropDown){
     console.log("Drop down not found");
-    return;
   }
 
   // Changing in-progress value differs from SAN/ITM&ATM tickets. SAN in progres = 610, ITM/ATM in progress = 153.
@@ -363,7 +362,8 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-
+// Overrides ctrl + q and brings up add notes modal.
+// Press again to submit the notes. Feel free to change it to whatever.
 document.addEventListener('keydown', function(event){
   if(event.ctrlKey && event.key === 'q'){
     event.preventDefault();
