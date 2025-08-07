@@ -3,7 +3,7 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://cc.cooksolutionsgroup.com/Support/Support/EditTicket*
 // @grant       none
-// @version     1.1
+// @version     1.1.2
 // @author      John Ivan Chan & Angel H. Lule Beltran
 // @description Makes CC 8/3/25 5:31
 // ==/UserScript==
@@ -38,6 +38,20 @@ function checkResources(){
   return false;
 }
 
+/**
+ * Helper: Finds an option in a dropdown by value and label text.
+ * @param {HTMLSelectElement} dropdown - The dropdown element to search in
+ * @param {string} targetValue - The value attribute to match
+ * @param {string} targetLabel - The visible text (innerText) to match (case-insensitive, trimmed)
+ * @returns {HTMLOptionElement|null} The matching option or null if not found
+ */
+function findOption(dropdown, targetValue, targetLabel) {
+  return Array.from(dropdown.options).find(option =>
+    option.value === targetValue &&
+    option.textContent.trim().toLowerCase() === targetLabel.toLowerCase()
+  );
+}
+
 //=======================================================
 // Start: getLabelFromTitle function
 //=======================================================
@@ -56,19 +70,6 @@ function getLabelFromTitle(){
     ]
   }
 
-/**
- * Helper: Finds an option in a dropdown by value and label text.
- * @param {HTMLSelectElement} dropdown - The dropdown element to search in
- * @param {string} targetValue - The value attribute to match
- * @param {string} targetLabel - The visible text (innerText) to match (case-insensitive, trimmed)
- * @returns {HTMLOptionElement|null} The matching option or null if not found
- */
-function findOption(dropdown, targetValue, targetLabel) {
-  return Array.from(dropdown.options).find(option =>
-    option.value === targetValue &&
-    option.textContent.trim().toLowerCase() === targetLabel.toLowerCase()
-  );
-}
 
   // Create an array based on the set defined strings objects
   // Look for keywords in title defined by ItemCategories
@@ -120,7 +121,6 @@ function handleAddNotesCheckboxes(){
 /**
  * Feature: Automatically change the state to "in progress" after assigning the ticket to user using "assign to me button"
  * Description: Function responsible for change state to "in progress"
- */
 function setStatusToInProgress(){
   const statusDropDown = document.getElementById('ddlStatus');
   if (!statusDropDown){
@@ -153,6 +153,7 @@ function setStatusToInProgress(){
   setTimeout(clickSaveButton, 500);
 
 }
+**/
 
 //=======================================================
 // Start: set state to Closed Function
@@ -175,8 +176,8 @@ function setStatusToClosed(){
   // If the value was found, change state to in progress & the resource list was empty
   console.log("empty ticket", emptyTicket);
 
-  if(!inProgressOption){
-    console.log('In Progress option not found');
+  if(!ClosedOption){
+    console.log('Closed option not found');
     return;
   }
   statusDropDown.value = ClosedOption.value;
@@ -187,7 +188,7 @@ function setStatusToClosed(){
   console.log("Changing Item type");
   selectItem();
   console.log('Saving ticket state');
-  setTimeout(clickSaveButton, 500);
+  // setTimeout(clickSaveButton, 500);
 
 }
 
@@ -260,14 +261,15 @@ function autoChangeType(){
 window.addEventListener('load', hookAssignButton);
 
 document.addEventListener('keydown', function(event) {
-  if (event.shiftKey && event.key === 'n' && event.key === 'f')
-    addSupportNotes(true);
-  // Add function for inserting text .
+  if (event.ctrlKey && event.key === '9') {
+    event.preventDefault();
+    console.log('ctrl+9 was pressed')
+    // addSupportNotes(true);
+  // Add function for inserting text
    // SubmitNotes(true);
-  //setStatusToClosed();
-
-
-}
+    setStatusToClosed();
+  }
+});
 
 // Override Ctrl + S and make it save the ticket :o
 document.addEventListener('keydown', function(event) {
@@ -276,6 +278,7 @@ document.addEventListener('keydown', function(event) {
         console.log('Ctrl+S was pressed, but default action is overridden!');
         clickSaveButton();
     }
+    });
 
 
 // Overrides ctrl + q and brings up add notes modal.
