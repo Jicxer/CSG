@@ -3,11 +3,11 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://cc.cooksolutionsgroup.com/Support/Support/EditTicket*
 // @grant       none
-// @version     1.2.0
+// @version     1.2.1
 // @author      John Ivan Chan & Angel H. Lule Beltran
 // @updateURL   https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
 // @downloadURL https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
-// @description Makes CC 5:12 8/9/25
+// @description Makes CC 05:44 8/9/25
 // ==/UserScript==
 
 
@@ -169,6 +169,7 @@ function getLabel(){
       "Business Rule : Out of Service, Fault Descr : No Load",
       "(30, suspect)",
       "Business Rule : Risk Condition, Fault Descr : Excessive txn reversals",
+      "Status code Description :DEVICE IN MAINTENANCE",
       "Status code Description :DEVICE IS CLOSED" // Notes
     ],
     "Depositor": [
@@ -181,7 +182,9 @@ function getLabel(){
       "Business Rule : Device Fault, Fault Descr : Envelope printer down",
       "Business Rule : Device Fault, Fault Descr : Document depository down",
       "Business Rule : Printer Paper Other Supply Problems, Fault Descr : Depository low/full",
-      "Status code Description :DEPOSITORY DOWN"
+      "Status code Description :DEPOSITORY LOW/FULL", // notes
+      "Status code Description :DEPOSITORY DOWN",
+      "Depositor"
     ],
     "Dispenser": [
       "Dispenser Dispatch",
@@ -197,6 +200,8 @@ function getLabel(){
       "Business Rule : Device Fault, Fault Descr : Canister",
       "Business Rule : Device Fault, Fault Descr : Cash hand bills not seen exit",
       "Notification for DISPENSER FAILURE",
+      "Status code Description :CASH HANDLER DOWN",
+      "Status code Description :CANISTER", // notes
       "Notification for CASH THRESHOLD LIMIT REACHED"
     ],
     "Printer": [
@@ -206,6 +211,7 @@ function getLabel(){
       "Business Rule : Device Fault, Fault Descr : Cons prt paper not load or jam",
       "Business Rule : Printer Paper Other Supply Problems, Fault Descr : Consumer printer fault",
       "Business Rule : Device Fault, Fault Descr : Consumer prt paper jam",
+      "Status code Description :CONSUMER PRINTER DOWN", //notes
       "Notification for RECEIPT PRINTER FAILURE"
     ],
     "Card Reader": [
@@ -214,7 +220,9 @@ function getLabel(){
       "Notification for EMV CARD READER FAILURE",
       "(2280, suspect)",
       "(2020, critical)",
-      "(2281, critical)"
+      "(2281, critical)",
+      "Status code Description :Mult. Card Reader/Writer Warns", // notes
+      "Status code Description :CARD READER/WRITER DOWN", // notes
     ],
     "Cassette":[
       "status='0016'",
@@ -229,7 +237,8 @@ function getLabel(){
     "Anti Skimming" : [
       "Business Rule : Out of Service, Fault Descr : Card skimming fraud detected Hard Fault",
       "Category: Security Dispatch",
-      "(2031, critical)"
+      "(2031, critical)",
+      "Status code Description :POSSIBLE SKIMMING DEVICE DETECTED" //notes
     ]
   };
 
