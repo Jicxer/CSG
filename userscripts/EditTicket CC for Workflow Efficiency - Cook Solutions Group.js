@@ -3,7 +3,7 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://cc.cooksolutionsgroup.com/Support/Support/EditTicket*
 // @grant       none
-// @version     1.1
+// @version     1.1.1
 // @author      John Ivan Chan & Angel H. Lule Beltran
 // @updateURL   https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
 // @downloadURL https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
@@ -12,6 +12,17 @@
 
 
 "use strict";
+
+//=====================================================================================================================================================================\\
+//                                                                        Start: Helper & Misc functions
+//=====================================================================================================================================================================\\
+
+//// Grabbed from stackoverflow https://stackoverflow.com/questions/64387549/wait-for-settimeout-to-complete-then-proceed-to-execute-rest-of-the-code - Yousaf
+function wait(seconds) {
+   return new Promise(resolve => {
+      setTimeout(resolve, seconds * 1000);
+   });
+}
 //=======================================================
 // Start: Click save button helper function
 //=======================================================
@@ -21,10 +32,8 @@ function clickSaveButton(){
     console.log('Clicked save button');
 }
 
-
 //=======================================================
 // Start: Helper function for checking if there's a resource
-// Not yet used.
 //=======================================================
 function checkResources(){
   const resourceTable = document.getElementById('tblResources');
@@ -47,13 +56,78 @@ function checkResources(){
  * @param {string} targetLabel - The visible text (innerText) to match (case-insensitive, trimmed)
  * @returns {HTMLOptionElement|null} The matching option or null if not found
  */
-function findOption(dropdown, targetValue, targetLabel) {
+function findOption(dropdown, targetLabel) {
   return Array.from(dropdown.options).find(option =>
-    option.value === targetValue &&
     option.textContent.trim().toLowerCase() === targetLabel.toLowerCase()
   );
 }
 
+//=======================================================
+// Start: Add Notes Checkbox Function
+//=======================================================
+/**
+ * Feature: Auto-uncheck Add Notes checkboxes
+ * Description: Underlying function responsible for unchecking Addnotes checkboxes
+ */
+function handleAddNotesCheckboxes(){
+  const checkboxIDs = ['chkContact', 'chkResources', 'chkCC'];
+  checkboxIDs.forEach(id => {
+    const checkbox = document.getElementById(id);
+    // This never gets checked but might as well be safe.
+    if(!checkbox){
+      console.log(id, 'not found');
+      return;
+    }
+    if(checkbox.checked){
+      console.log(id, 'is checked, unchecking now...');
+      checkbox.click();
+    }
+    else{
+      console.log(id, 'already unchecked');
+    }
+  })
+}
+
+// Override Ctrl + S and make it save the ticket :o
+document.addEventListener('keydown', function(event) {
+    if (event.ctrlKey && event.key === 's') {
+        event.preventDefault(); // Prevent the default save action
+        console.log('Ctrl+S was pressed, but default action is overridden!');
+        clickSaveButton();
+    }
+});
+
+// Overrides ctrl + q and brings up add notes modal.
+// Press again to submit the notes. Feel free to change it to whatever.
+document.addEventListener('keydown', function(event){
+  if(event.ctrlKey && event.key === 'q'){
+    event.preventDefault();
+
+    const modal = document.querySelector('#modal-addnote');
+    const isVisible = modal && !modal.classList.contains('mfp-hide');
+
+    if(isVisible){
+      console.log("Pressed ctrl + q when modal was visible!");
+      SubmitNotes(true);
+    }
+    else{
+      console.log("Pressed ctrl + q when modal was not visible!");
+      addSupportNotes(true);
+    }
+  }
+});
+//=====================================================================================================================================================================\\
+//                                                                        Start: SAN Functions
+//=====================================================================================================================================================================\\
+
+
+
+
+
+
+//=====================================================================================================================================================================\\
+//                                                                        Start: ATM Functions
+//=====================================================================================================================================================================\\
 
 //=======================================================
 // Start: getLabelFromTitle function
@@ -91,7 +165,10 @@ function getLabelFromTitle(){
       "status='C7'",
       "Terminal Off Line As Of",
       "Terminal Closed As Of",
-      "Category: Supervisor Dispatch"
+      "Category: Supervisor Dispatch",
+      "Business Rule : Out of Service, Fault Descr : No Load",
+      "(30, suspect)",
+      "Business Rule : Risk Condition, Fault Descr : Excessive txn reversals"
     ],
     "Depositor": [
       "Depository Dispatch",
@@ -214,39 +291,13 @@ function selectItem(){
 }
 
 //=======================================================
-// Start: Add Notes Checkbox Function
-//=======================================================
-/**
- * Feature: Auto-uncheck Add Notes checkboxes
- * Description: Underlying function responsible for unchecking Addnotes checkboxes
- */
-function handleAddNotesCheckboxes(){
-  const checkboxIDs = ['chkContact', 'chkResources', 'chkCC'];
-  checkboxIDs.forEach(id => {
-    const checkbox = document.getElementById(id);
-    // This never gets checked but might as well be safe.
-    if(!checkbox){
-      console.log(id, 'not found');
-      return;
-    }
-    if(checkbox.checked){
-      console.log(id, 'is checked, unchecking now...');
-      checkbox.click();
-    }
-    else{
-      console.log(id, 'already unchecked');
-    }
-  })
-}
-
-//=======================================================
 // Start: Assign to Me change state Function
 //=======================================================
 /**
  * Feature: Automatically change the state to "in progress" after assigning the ticket to user using "assign to me button"
  * Description: Function responsible for change state to "in progress"
  */
-function setStatusToInProgress(){
+async function setStatusToInProgress(){
   const statusDropDown = document.getElementById('ddlStatus');
   if (!statusDropDown){
     console.log("Drop down not found");
@@ -254,11 +305,8 @@ function setStatusToInProgress(){
 
   // Changing in-progress value differs from SAN/ITM&ATM tickets. SAN in progres = 610, ITM/ATM in progress = 153.
   // Change the state based on statetyperecid & trim 'in progress'.
-  const inProgressOption = findOption(statusDropDown, '153', 'in progress');
-
-  const emptyTicket = checkResources();
-  // If the value was found, change state to in progress & the resource list was empty
-  console.log("empty ticket", emptyTicket);
+  await wait(2);
+  const inProgressOption = findOption(statusDropDown, 'in progress');
 
   if(!inProgressOption){
     console.log('In Progress option not found');
@@ -275,7 +323,7 @@ function setStatusToInProgress(){
   console.log("Changing Item type");
   selectItem();
   console.log('Saving ticket state');
-  setTimeout(clickSaveButton, 500);
+  setTimeout(clickSaveButton, 1000);
 
 }
 
@@ -289,7 +337,6 @@ function hookAssignButton(){
   const assignButton = document.querySelector(".assigntome");
   const saveButton = document.querySelector('.EditTicket');
 
-
   // If the button exists and no other listeners
   if(assignButton && !assignButton.dataset.handlerAttached) {
     assignButton.addEventListener('click', () => {
@@ -299,7 +346,6 @@ function hookAssignButton(){
     });
     assignButton.dataset.handlerAttached = true; // attached listener
   }
-
 }
 
 /**
@@ -317,9 +363,9 @@ function autoChangeType(){
   // Change values for type and subtype based on the board value. Essentially looking for "ATM/ITM"
   // There is no statetyperecid like in Progress drop down but it is 14. Hopefully this is consistent acorss all ATM/ITM tickets.
   // Find if these exists first before changing
-  const ATMITMOption = findOption(boardDropDown, '14', 'atm/itm');
+  const ATMITMOption = findOption(boardDropDown, 'atm/itm');
   // Option for hardware is 73 for type dropdown
-  const hardwareOption = findOption(typeDropDown, '73', 'hardware');
+  const hardwareOption = findOption(typeDropDown, 'hardware');
 
   if(!ATMITMOption || !hardwareOption){
     console.log('Dropdown options could not be found.');
@@ -337,7 +383,7 @@ function autoChangeType(){
 
     // Value for "network notification" is 114. Alternatively can just find keywords like prior variables.
     // This is initially disabled so we wait until there's something for type dropdown.
-    const subtypeOption = findOption(subtypeDropDown, '114', 'network notification');
+    const subtypeOption = findOption(subtypeDropDown, 'network notification');
     if(!subtypeOption){
       console.log(subtypeOption, 'could not be found');
     }
@@ -349,46 +395,12 @@ function autoChangeType(){
   }
 }
 
-
-
 window.addEventListener('load', hookAssignButton);
-
-// Override Ctrl + S and make it save the ticket :o
-document.addEventListener('keydown', function(event) {
-    if (event.ctrlKey && event.key === 's') {
-        event.preventDefault(); // Prevent the default save action
-        console.log('Ctrl+S was pressed, but default action is overridden!');
-        clickSaveButton();
-    }
-});
-
-// Overrides ctrl + q and brings up add notes modal.
-// Press again to submit the notes. Feel free to change it to whatever.
-document.addEventListener('keydown', function(event){
-  if(event.ctrlKey && event.key === 'q'){
-    event.preventDefault();
-
-    const modal = document.querySelector('#modal-addnote');
-    const isVisible = modal && !modal.classList.contains('mfp-hide');
-
-    if(isVisible){
-      console.log("Pressed ctrl + q when modal was visible!");
-      SubmitNotes(true);
-    }
-    else{
-      console.log("Pressed ctrl + q when modal was not visible!");
-      addSupportNotes(true);
-    }
-  }
-});
-
-
 
 let emptyTicket = null;
 // Set up MutationObserver to observe the DOM
 const bodyObserver = new MutationObserver(() => {
 
-  //======================================================= Add Notes Checkbox Functionality =======================================================//
   // Detect the notes modal when visible after clicking "add notes" then uncheck boxes.
   const modal = document.querySelector('#modal-addnote');
   if (!modal.classList.contains('mfp-hide')) {
@@ -396,9 +408,7 @@ const bodyObserver = new MutationObserver(() => {
     handleAddNotesCheckboxes();
   }
   // Calling Assign Button & change type and subtype dropdowns.
-    setTimeout(() => {
-      emptyTicket = checkResources();
-    }, 1000);
+    emptyTicket = checkResources();
     console.log('emptyTicket:', emptyTicket);
     if(!emptyTicket){
       console.log("Ticket is taken, returning");
