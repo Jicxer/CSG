@@ -3,11 +3,11 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://cc.cooksolutionsgroup.com/Support/Support/EditTicket*
 // @grant       none
-// @version     1.1.1
+// @version     1.2.0
 // @author      John Ivan Chan & Angel H. Lule Beltran
 // @updateURL   https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
 // @downloadURL https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
-// @description Makes CC 8/3/25 5:31
+// @description Makes CC 05:12 8/9/25
 // ==/UserScript==
 
 
@@ -130,7 +130,7 @@ document.addEventListener('keydown', function(event){
 //=====================================================================================================================================================================\\
 
 //=======================================================
-// Start: getLabelFromTitle function
+// Start: getLabel function
 //=======================================================
 /**
  * Feature: Find matching keywords from title and returns the corresponding label
@@ -138,7 +138,7 @@ document.addEventListener('keydown', function(event){
  *  Create a list of strings with label & keywords typically found in the title
  *  Iterate through this list and see if there is a match then return the selected label if there is a match
  */
-function getLabelFromTitle(){
+function getLabel(){
 
   // Define a list of strings that contain typical indications for the item
   let itemCategories = {
@@ -168,7 +168,8 @@ function getLabelFromTitle(){
       "Category: Supervisor Dispatch",
       "Business Rule : Out of Service, Fault Descr : No Load",
       "(30, suspect)",
-      "Business Rule : Risk Condition, Fault Descr : Excessive txn reversals"
+      "Business Rule : Risk Condition, Fault Descr : Excessive txn reversals",
+      "Status code Description :DEVICE IS CLOSED" // Notes
     ],
     "Depositor": [
       "Depository Dispatch",
@@ -179,7 +180,8 @@ function getLabelFromTitle(){
       " (2211, suspect)",
       "Business Rule : Device Fault, Fault Descr : Envelope printer down",
       "Business Rule : Device Fault, Fault Descr : Document depository down",
-      "Business Rule : Printer Paper Other Supply Problems, Fault Descr : Depository low/full"
+      "Business Rule : Printer Paper Other Supply Problems, Fault Descr : Depository low/full",
+      "Status code Description :DEPOSITORY DOWN"
     ],
     "Dispenser": [
       "Dispenser Dispatch",
@@ -231,15 +233,17 @@ function getLabelFromTitle(){
     ]
   };
 
-  const titleForm = document.getElementById('txtTitle');
-  const titleValue = titleForm.value.trim().toLowerCase();
-
+  const titleValue = document.getElementById('txtTitle').value.trim().toLowerCase();
+  // Create an array from all the notes & select the last element or return an empty a string
+  const ticketNotes = Array.from(document.querySelectorAll('.notice_info'));
+  const parentNote = ticketNotes.at(-1)?.textContent.trim().toLowerCase() || '';
+  console.log(parentNote);
   // Create an array based on the set defined strings objects
   // Look for keywords in title defined by ItemCategories
   let selectedLabel = null;
   for (const [label, keywords] of Object.entries(itemCategories)) {
     for (const keyword of keywords){
-      if(titleValue.includes(keyword.toLowerCase())){
+      if(titleValue.includes(keyword.toLowerCase()) || (parentNote.includes(keyword.toLowerCase()))){
         console.log('found a keyword: ', keyword);
         selectedLabel = label;
         break;
@@ -266,7 +270,7 @@ function selectItem(){
     return console.log('EXITED FUNCTION: Select Item dropdown is disabled');
   }
   // Grab the correct label based on title patterns
-  let label = getLabelFromTitle();
+  let label = getLabel();
   if(!label){
     return console.log('EXITED selectItem FUNCTION: label is null');
   }
