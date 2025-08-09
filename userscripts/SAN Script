@@ -1,0 +1,333 @@
+// ==UserScript==
+// @name        SAN script
+// @namespace   Violentmonkey Scripts
+// @match       https://cc.cooksolutionsgroup.com/Support/Support/EditTicket*
+// @grant       none
+// @version     1.1.2
+// @author      John Ivan Chan & Angel H. Lule Beltran
+// @description Makes CC 8/3/25 5:31
+// ==/UserScript==
+
+
+"use strict";
+//=======================================================
+// Start: Click save button helper function
+//=======================================================
+function clickSaveButton(){
+    const saveButton = document.querySelector('.EditTicket');
+    saveButton.click();
+    console.log('Clicked save button');
+}
+
+
+//=======================================================
+// Start: Helper function for checking if there's a resource
+// Not yet used.
+//=======================================================
+function checkResources(){
+  const resourceTable = document.getElementById('tblResources');
+  if(!resourceTable){
+    return console.log("No resource table found");
+  }
+
+  const emptyResource = resourceTable.querySelector('.no-records-found');
+  if(emptyResource){
+    console.log('There is no resource yet, go ahead and assign');
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Helper: Finds an option in a dropdown by value and label text.
+ * @param {HTMLSelectElement} dropdown - The dropdown element to search in
+ * @param {string} targetValue - The value attribute to match
+ * @param {string} targetLabel - The visible text (innerText) to match (case-insensitive, trimmed)
+ * @returns {HTMLOptionElement|null} The matching option or null if not found
+ */
+function findOption(dropdown, targetValue, targetLabel) {
+  return Array.from(dropdown.options).find(option =>
+    option.value === targetValue &&
+    option.textContent.trim().toLowerCase() === targetLabel.toLowerCase()
+  );
+}
+
+//=======================================================
+// Start: getLabelFromTitle function
+//=======================================================
+/**
+ * Feature: Find matching keywords from title and returns the corresponding label
+ * Description:
+ *  Create a list of strings with label & keywords typically found in the title
+ *  Iterate through this list and see if there is a match then return the selected label if there is a match
+ */
+function getLabelFromTitle(){
+
+  // Define a list of strings that contain typical indications for the item
+  let itemCategories = {
+    "No Fraud Found": [
+      'RVClient - Loitering Detected'
+    ]
+  }
+
+
+  // Create an array based on the set defined strings objects
+  // Look for keywords in title defined by ItemCategories
+  let selectedLabel = null;
+  for (const [label, keywords] of Object.entries(itemCategories)) {
+    for (const keyword of keywords){
+      if(titleValue.includes(keyword.toLowerCase())){
+        console.log('found a keyword: ', keyword);
+        selectedLabel = label;
+        break;
+      }
+    }
+    if (selectedLabel) break;
+  }
+  console.log('Found a matching label:', selectedLabel);
+  return selectedLabel;
+}
+
+
+//=======================================================
+// Start: Add Notes Checkbox Function
+//=======================================================
+/**
+ * Feature: Auto-uncheck Add Notes checkboxes
+ * Description: Underlying function responsible for unchecking Addnotes checkboxes
+ */
+function handleAddNotesCheckboxes(){
+  const checkboxIDs = ['chkContact', 'chkResources', 'chkCC'];
+  checkboxIDs.forEach(id => {
+    const checkbox = document.getElementById(id);
+    // This never gets checked but might as well be safe.
+    if(!checkbox){
+      console.log(id, 'not found');
+      return;
+    }
+    if(checkbox.checked){
+      console.log(id, 'is checked, unchecking now...');
+      checkbox.click();
+    }
+    else{
+      console.log(id, 'already unchecked');
+    }
+  })
+}
+
+//=======================================================
+// Start: Assign to Me change state Function
+//=======================================================
+/**
+ * Feature: Automatically change the state to "in progress" after assigning the ticket to user using "assign to me button"
+ * Description: Function responsible for change state to "in progress"
+function setStatusToInProgress(){
+  const statusDropDown = document.getElementById('ddlStatus');
+  if (!statusDropDown){
+    console.log("Drop down not found");
+  }
+
+  // Changing in-progress value differs from SAN/ITM&ATM tickets. SAN in progres = 610, ITM/ATM in progress = 153.
+  // Change the state based on statetyperecid & trim 'in progress'.
+  const inProgressOption = findOption(statusDropDown, '153', 'in progress');
+
+  const emptyTicket = checkResources();
+  // If the value was found, change state to in progress & the resource list was empty
+  console.log("empty ticket", emptyTicket);
+
+  if(!inProgressOption){
+    console.log('In Progress option not found');
+    return;
+  }
+  statusDropDown.value = inProgressOption.value;
+
+  // Play around with this and see if it matters to keep; might be imporant to have that time buffer as the rest of the options appear
+  // statusDropDown.dispatchEvent(new Event('change', {bubbles: true}));
+  console.log('Status changed to In Progress');
+  // Change the type and subtype dropdowns
+  console.log('Changing type and subtype dropdowns');
+  autoChangeType();
+  console.log("Changing Item type");
+  selectItem();
+  console.log('Saving ticket state');
+  setTimeout(clickSaveButton, 500);
+
+}
+**/
+
+//=======================================================
+// Start: set state to Closed Function
+//=======================================================
+/**
+ * Feature:
+ * Description:
+ */
+function setStatusToClosed(){
+  const statusDropDown = document.getElementById('ddlStatus');
+  if (!statusDropDown){
+    console.log("Drop down not found");
+  }
+
+  // Changing in-progress value differs from SAN/ITM&ATM tickets. SAN in progres = 610, ITM/ATM in progress = 153.
+  // Change the state based on statetyperecid & trim 'in progress'.
+  const ClosedOption = findOption(statusDropDown, '621', 'Closed');
+
+  const emptyTicket = checkResources();
+  // If the value was found, change state to in progress & the resource list was empty
+  console.log("empty ticket", emptyTicket);
+
+  if(!ClosedOption){
+    console.log('Closed option not found');
+    return;
+  }
+  statusDropDown.value = ClosedOption.value;
+
+  // Play around with this and see if it matters to keep; might be imporant to have that time buffer as the rest of the options appear
+  // statusDropDown.dispatchEvent(new Event('change', {bubbles: true}));
+  console.log('Status changed to Closed');
+  console.log("Changing Item type");
+  selectItem();
+  console.log('Saving ticket state');
+  // setTimeout(clickSaveButton, 500);
+
+}
+
+
+/**
+ * Feature: Assign to Me button click functionality
+ * Description:
+ *  Attaches a click event listener to "Assign to Me" button
+ *  When clicked, triggers delayed call to ticket state "in progress" - (attempts to) prevent multiple listeners with handlerAttched
+ */
+function hookAssignButton(){
+  const assignButton = document.querySelector(".assigntome");
+  const saveButton = document.querySelector('.EditTicket');
+
+
+  // If the button exists and no other listeners
+  if(assignButton && !assignButton.dataset.handlerAttached) {
+    assignButton.addEventListener('click', () => {
+
+      console.log('Assign to Me button clicked');
+      setTimeout(setStatusToInProgress, 4500);
+    });
+    assignButton.dataset.handlerAttached = true; // attached listener
+  }
+
+}
+
+/**
+ * Feature: Change type and subtype option on subtype based on ITM/ATM tickets.
+ * Description: Change the "type" & "subtype" portion of the ticket when working on an ATM/ITM ticket as specified on the Board dropdown
+ */
+function autoChangeType(){
+  const boardDropDown = document.getElementById('ddlBoard');
+  const typeDropDown = document.getElementById('ddlType');
+  const subtypeDropDown = document.getElementById('ddlSubType');
+  if (!boardDropDown || !typeDropDown || !subtypeDropDown){
+    return console.log("Error finding one of dropdowns");
+  }
+
+  // Change values for type and subtype based on the board value. Essentially looking for "ATM/ITM"
+  // There is no statetyperecid like in Progress drop down but it is 14. Hopefully this is consistent acorss all ATM/ITM tickets.
+  // Find if these exists first before changing
+  const sanOption = findOption(boardDropDown, '55', 'san');
+  // Option for hardware is 73 for type dropdown
+  const SusOption = findOption(typeDropDown, '236', 'Suspicious Actitvity Notification');
+
+  if(!sanOption || !SusOption){
+    console.log('Dropdown options could not be found.');
+  }
+
+  // If the value of the board dropdown is SAN, then proceed with changing the other values.
+  // Change value of type dropdown to Suspicious Actitvity Notification & subtype dropdown to No Fraud Found
+  console.log('Board dropdown value: ', boardDropDown.value);
+  console.log('sanOption value:', sanOption.value);
+  if(boardDropDown.value === SusOption.value){
+
+    // Change the value to Suspicious Actitvity Notification & since subtype dropdown is initially disabled until input, create an event.
+    typeDropDown.value = SusOption.value;
+    typeDropDown.dispatchEvent(new Event('change', {bubbles: true}));
+
+
+
+    //call save function here
+    console.log('Successfully updated ticket');
+  }
+}
+
+
+
+window.addEventListener('load', hookAssignButton);
+
+document.addEventListener('keydown', function(event) {
+  if (event.ctrlKey && event.key === '9') {
+    event.preventDefault();
+    console.log('ctrl+9 was pressed')
+    // addSupportNotes(true);
+  // Add function for inserting text
+   // SubmitNotes(true);
+    setStatusToClosed();
+  }
+});
+
+// Override Ctrl + S and make it save the ticket :o
+document.addEventListener('keydown', function(event) {
+    if (event.ctrlKey && event.key === 's') {
+        event.preventDefault(); // Prevent the default save action
+        console.log('Ctrl+S was pressed, but default action is overridden!');
+        clickSaveButton();
+    }
+    });
+
+
+// Overrides ctrl + q and brings up add notes modal.
+// Press again to submit the notes. Feel free to change it to whatever.
+document.addEventListener('keydown', function(event){
+  if(event.ctrlKey && event.key === 'q'){
+    event.preventDefault();
+
+    const modal = document.querySelector('#modal-addnote');
+    const isVisible = modal && !modal.classList.contains('mfp-hide');
+
+    if(isVisible){
+      console.log("Pressed ctrl + q when modal was visible!");
+      SubmitNotes(true);
+    }
+    else{
+      console.log("Pressed ctrl + q when modal was not visible!");
+      let textareas = document.getElementsByTagName("textarea");
+      let textarea = textareas[0];
+      textarea.click();
+      addSupportNotes(true);
+    }
+  }
+});
+
+
+
+let emptyTicket = null;
+// Set up MutationObserver to observe the DOM
+const bodyObserver = new MutationObserver(() => {
+
+  //======================================================= Add Notes Checkbox Functionality =======================================================//
+  // Detect the notes modal when visible after clicking "add notes" then uncheck boxes.
+  const modal = document.querySelector('#modal-addnote');
+  if (!modal.classList.contains('mfp-hide')) {
+    console.log('Add notes modal is visible!');
+    handleAddNotesCheckboxes();
+  }
+  // Calling Assign Button & change type and subtype dropdowns.
+    setTimeout(() => {
+      emptyTicket = checkResources();
+    }, 1000);
+    console.log('emptyTicket:', emptyTicket);
+    if(!emptyTicket){
+      console.log("Ticket is taken, returning");
+      return;
+    }
+    hookAssignButton();
+});
+
+// Watch all children, direct or not.
+bodyObserver.observe(document.body, { childList: true, subtree: true });
