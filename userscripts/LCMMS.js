@@ -151,7 +151,7 @@
     await wait(1);
     console.log("Finished waiting");
 
-    console.log("Changing the value for the notes to 'no fraud found'");
+    console.log("Changing the value for the notes to 'Terminal is up and in service'");
     const noteBox = document.getElementById("txtNoteDescription");
     if (!noteBox) {
       console.log("Textbox not found");
