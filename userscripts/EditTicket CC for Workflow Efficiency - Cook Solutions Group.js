@@ -169,6 +169,22 @@ async function closeAsNFF(){
   itemDropDown.value = findOption(itemDropDown, 'no fraud found')?.value;
   clickSaveButton();
 }
+
+async function addNotes(){
+  addSupportNotes(true);
+  console.log('Waiting 1 seconds...');
+  await wait(1);
+  console.log('Finished waiting');
+  console.log('Changing the value for the notes to no fraud found!');
+  const addNotestxt = document.getElementById('txtNoteDescription');
+  if(!addNotestxt){
+    console.log('Textbox not found');
+    return;
+  }
+  addNotestxt.value = "Video reviewed, no fraud found";
+  SubmitNotes(true);
+
+}
 //=====================================================================================================================================================================\\
 //                                                                        Start: ATM Functions
 //=====================================================================================================================================================================\\
