@@ -119,12 +119,56 @@ document.addEventListener('keydown', function(event){
 //=====================================================================================================================================================================\\
 //                                                                        Start: SAN Functions
 //=====================================================================================================================================================================\\
+document.addEventListener('keydown', function(event){
+  if(event.ctrlKey && event.key === '`'){
+    event.preventDefault();
+    console.log('Pressed SAN hotkey');
+    const videoModal = document.getElementById('FilePreviewModal');
+    const visibleModal = videoModal.getAttribute('aria-hidden') === 'false';
+    const closeButton = videoModal.querySelector('.btn-secondary');
 
+    const videoLink = document.querySelector('.file-preview');
+    const validLink = videoLink && videoLink.textContent?.includes('.mp4');
 
+    if(!validLink){
+      console.log('Not a valid link...');
+      return;
+    }
+    if(visibleModal){
+      console.log('Modal is visible');
+      closeButton.click();
+      closeAsNFF();
+    }
+    else{
+      console.log('Pressed when modal is not visible');
+      videoLink.click();
+    }
+  }
+});
 
+async function closeAsNFF(){
+  const boardDropdown = document.getElementById('ddlBoard');
+  const statusDropDown = document.getElementById('ddlStatus');
+  const itemDropDown = document.getElementById('ddlSubTypeItem');
 
+  if (!boardDropdown || !statusDropDown || !itemDropDown){
+    console.log("One of dropdowns not found");
+    return;
+  }
 
+  const sanSelected = findOption(boardDropdown, 'SAN')?.selected;
+  const retroSelected = findOption(boardDropdown, 'SAN - Retroactive')?.selected;
 
+  if (!sanSelected && !retroSelected) {
+    console.log('Neither SAN/Retro were selected');
+    return;
+  }
+  await addNotes();
+  console.log('Closing the ticket to no fraud found')
+  statusDropDown.value = findOption(statusDropDown, 'closed')?.value;
+  itemDropDown.value = findOption(itemDropDown, 'no fraud found')?.value;
+  clickSaveButton();
+}
 //=====================================================================================================================================================================\\
 //                                                                        Start: ATM Functions
 //=====================================================================================================================================================================\\
