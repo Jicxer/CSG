@@ -3,11 +3,11 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://cc.cooksolutionsgroup.com/Support/Support/EditTicket*
 // @grant       none
-// @version     1.2.1
+// @version     1.2.3
 // @author      John Ivan Chan & Angel H. Lule Beltran
 // @updateURL   https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
 // @downloadURL https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
-// @description Makes CC 05:44 8/9/25
+// @description Makes CC 03:20 8/30/25
 // ==/UserScript==
 
 
@@ -90,7 +90,7 @@ function handleAddNotesCheckboxes(){
 
 // Override Ctrl + S and make it save the ticket :o
 document.addEventListener('keydown', function(event) {
-    if (event.ctrlKey && event.key === 's') {
+    if (event.ctrlKey && event.key.toLowerCase() === 's') {
         event.preventDefault(); // Prevent the default save action
         console.log('Ctrl+S was pressed, but default action is overridden!');
         clickSaveButton();
@@ -100,7 +100,7 @@ document.addEventListener('keydown', function(event) {
 // Overrides ctrl + q and brings up add notes modal.
 // Press again to submit the notes. Feel free to change it to whatever.
 document.addEventListener('keydown', function(event){
-  if(event.ctrlKey && event.key === 'q'){
+  if(event.ctrlKey && event.key.toLowerCase() === 'q'){
     event.preventDefault();
 
     const modal = document.querySelector('#modal-addnote');
@@ -171,6 +171,7 @@ async function closeAsNFF(){
 }
 
 async function addNotes(){
+
   addSupportNotes(true);
   console.log('Waiting 1 seconds...');
   await wait(1);
@@ -302,11 +303,11 @@ function getLabel(){
     ]
   };
 
+  // Place this into a different function...
   const titleValue = document.getElementById('txtTitle').value.trim().toLowerCase();
   // Create an array from all the notes & select the last element or return an empty a string
   const ticketNotes = Array.from(document.querySelectorAll('.notice_info'));
   const parentNote = ticketNotes.at(-1)?.textContent.trim().toLowerCase() || '';
-  console.log(parentNote);
   // Create an array based on the set defined strings objects
   // Look for keywords in title defined by ItemCategories
   let selectedLabel = null;
@@ -322,6 +323,91 @@ function getLabel(){
   }
   console.log('Found a matching label:', selectedLabel);
   return selectedLabel;
+}
+
+//=======================================================
+// Start: getCompany function
+//=======================================================
+/**
+ * Feature: Find common ATM ID naming conventions for the bank
+ * Description:
+ *  Create a list of strings with label & keywords typically found in the title/descrption
+ *  Iterate through this list and see if there is a match then return the selected label if there is a match
+ */
+function getCompany(){
+
+  let companyCategories = {
+    "CU Anytime": [
+      'COXK'
+    ],
+    "Southern Michigan Bank and Trust":[
+      'AtmApp:JSout2370'
+    ],
+    "Buckholts State Bank":[
+      'I369000'
+    ]
+  };
+
+  const titleValue = document.getElementById('txtTitle').value.trim().toLowerCase();
+  const ticketNotes = Array.from(document.querySelectorAll('.notice_info'));
+  const parentNote = ticketNotes.at(-1)?.textContent.trim().toLowerCase() || '';
+
+  let selectedLabel = null;
+  for (const [label, keywords] of Object.entries(companyCategories)) {
+    for (const keyword of keywords){
+      if(titleValue.includes(keyword.toLowerCase()) || (parentNote.includes(keyword.toLowerCase()))){
+        console.log('found a keyword: ', keyword);
+        selectedLabel = label;
+        break;
+      }
+    }
+    if (selectedLabel) break;
+  }
+  console.log(selectedLabel);
+  return selectedLabel;
+}
+
+function selectCompany(){
+
+  let companyDropDown = document.getElementById('ddlSupportCompany');
+  if(!companyDropDown){
+    return console.log('EXITED selectCompany FUNCTION: Company dropdown is disabled');
+  }
+  let companyLabel = getCompany();
+  if(!companyLabel){console.log('EXITED selectCompany FUNCTION: label is null')}
+
+  const ItemOptionsArray = Array.from(companyDropDown.options).map(opt => ({
+    label: opt.textContent.trim(),
+    value: opt.value
+  }));
+  console.log(ItemOptionsArray);
+
+  const matchedOption = ItemOptionsArray.find(
+  opt => opt.label.toLowerCase() === companyLabel.toLowerCase()
+  );
+  console.log('Found the specific customer number: ', matchedOption.value);
+  companyDropDown.value = matchedOption.value;
+  companyDropDown.dispatchEvent(new Event('change', { bubbles: true }));
+  console.log(`Dropdown set to: ${companyLabel} (value: ${companyLabel})`);
+
+}
+
+function selectLocation(){
+  const titleValue = document.getElementById('txtTitle').value.trim().toLowerCase();
+  const ticketNotes = Array.from(document.querySelectorAll('.notice_info'));
+  let locationDropDown = document.getElementById('ddLocation');
+  if(!locationDropDown){
+    return console.log('EXITED selectLocation FUNCTION: Location dropdown is disabled');
+  }
+
+  const ItemOptionsArray = Array.from(companyDropDown.options).map(opt => ({
+    label: opt.textContent.trim(),
+    value: opt.value
+  }));
+
+   const matchedOption = ItemOptionsArray.find(
+  opt => opt.label.toLowerCase() === companyLabel.toLowerCase()
+  );
 }
 
 //=======================================================
