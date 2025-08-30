@@ -7,12 +7,124 @@
 // @author      John Ivan Chan & Angel H. Lule Beltran
 // @updateURL   https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
 // @downloadURL https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
-// @description Makes CC 03:20 8/30/25
+// @description Makes CC 04:47 8/30/25
 // ==/UserScript==
 
 
 "use strict";
 
+let itemCategories = {
+  "No Withdrawal Activity": [
+    'no withdrawals dispatch'
+  ],
+  "No Transaction Activity" : [
+    "Notification for ACTMON",
+    "Business Rule : No Transactions Activity, Fault Descr : No transaction activity",
+    "ATM Processing Transactions",
+    "ATM Inactive greater than"
+  ],
+  "Lost Comms": [
+    "comm dispatch",
+    "offline",
+    "Business Rule : Lost Communication, Fault Descr : Session closed by partner",
+    "In Service to Off-Line",
+    "CommR Dispatch",
+    "Online",
+    "Notification for COMMUNICATION FAILURE",
+    "(5003, critical)",
+    "(113, info)",
+    "(5004, suspect)",
+    "status='C7'",
+    "Terminal Off Line As Of",
+    "Terminal Closed As Of",
+    "Category: Supervisor Dispatch",
+    "Business Rule : Out of Service, Fault Descr : No Load",
+    "(30, suspect)",
+    "Business Rule : Risk Condition, Fault Descr : Excessive txn reversals",
+    "Status code Description :DEVICE IN MAINTENANCE",
+    "Status code Description :DEVICE IS CLOSED" // Notes
+  ],
+  "Depositor": [
+    "Depository Dispatch",
+    "Business Rule : Device Fault, Fault Descr : Depository down",
+    "Notification for DEPOSITORY FAILURE",
+    "(2009, critical)",
+    "Notification for CK/MICR READER FAILURE for Device",
+    " (2211, suspect)",
+    "Business Rule : Device Fault, Fault Descr : Envelope printer down",
+    "Business Rule : Device Fault, Fault Descr : Document depository down",
+    "Business Rule : Printer Paper Other Supply Problems, Fault Descr : Depository low/full",
+    "Status code Description :DEPOSITORY LOW/FULL", // notes
+    "Status code Description :DEPOSITORY DOWN",
+    "Depositor"
+  ],
+  "Dispenser": [
+    "Dispenser Dispatch",
+    "Business Rule : Device Fault, Fault Descr : Cash handler down",
+    "Notification for MULTIPLE DISPENSER FAILURE",
+    "Business Rule : Device Fault, Fault Descr : Cash handler bill jammed",
+    "status='0010'",
+    "status='0008'",
+    "(2001, critical)",
+    "(2005, critical)",
+    "Notification for DIVERT FAILURE",
+    "Category: Cash Out Dispatch",
+    "Business Rule : Device Fault, Fault Descr : Canister",
+    "Business Rule : Device Fault, Fault Descr : Cash hand bills not seen exit",
+    "Notification for DISPENSER FAILURE",
+    "Status code Description :CASH HANDLER DOWN",
+    "Status code Description :CANISTER", // notes
+    "Notification for CASH THRESHOLD LIMIT REACHED"
+  ],
+  "Printer": [
+    "Receipt Printer Dispatch",
+    "(2047, critical)",
+    "Business Rule : Device Fault, Fault Descr : Cons prt head jam/go busy fail",
+    "Business Rule : Device Fault, Fault Descr : Cons prt paper not load or jam",
+    "Business Rule : Printer Paper Other Supply Problems, Fault Descr : Consumer printer fault",
+    "Business Rule : Device Fault, Fault Descr : Consumer prt paper jam",
+    "Status code Description :CONSUMER PRINTER DOWN", //notes
+    "Notification for RECEIPT PRINTER FAILURE"
+  ],
+  "Card Reader": [
+    "Card reader Dispatch",
+    "Business Rule : Out of Service, Fault Descr : Card reader fault",
+    "Notification for EMV CARD READER FAILURE",
+    "(2280, suspect)",
+    "(2020, critical)",
+    "(2281, critical)",
+    "Status code Description :Mult. Card Reader/Writer Warns", // notes
+    "Status code Description :CARD READER/WRITER DOWN", // notes
+  ],
+  "Cassette":[
+    "status='0016'",
+    "Cassettes of type",
+    "(50, critical)"
+  ],
+  "EPP": [
+    "Business Rule : Out of Service, Fault Descr : Encryptor down",
+    "Notification for ENCRYPTION FAILURE for Device",
+    "Category: Encryptor Dispatch"
+  ],
+  "Anti Skimming" : [
+    "Business Rule : Out of Service, Fault Descr : Card skimming fraud detected Hard Fault",
+    "Category: Security Dispatch",
+    "(2031, critical)",
+    "Status code Description :POSSIBLE SKIMMING DEVICE DETECTED" //notes
+  ]
+};
+
+let companyCategories = {
+  "CU Anytime": [
+    'COXK'
+  ],
+  "Southern Michigan Bank and Trust":[
+    'AtmApp:JSout2370'
+  ],
+  "Buckholts State Bank":[
+    'I369000'
+  ]
+};
 //=====================================================================================================================================================================\\
 //                                                                        Start: Helper & Misc functions
 //=====================================================================================================================================================================\\
@@ -196,174 +308,24 @@ async function addNotes(){
 /**
  * Feature: Find matching keywords from title and returns the corresponding label
  * Description:
- *  Create a list of strings with label & keywords typically found in the title
+ *  Pass a specific category variable as a parameter
  *  Iterate through this list and see if there is a match then return the selected label if there is a match
  */
-function getLabel(){
-
-  // Define a list of strings that contain typical indications for the item
-  let itemCategories = {
-    "No Withdrawal Activity": [
-      'no withdrawals dispatch'
-    ],
-    "No Transaction Activity" : [
-      "Notification for ACTMON",
-      "Business Rule : No Transactions Activity, Fault Descr : No transaction activity",
-      "ATM Processing Transactions",
-      "ATM Inactive greater than"
-    ],
-    "Lost Comms": [
-      "comm dispatch",
-      "offline",
-      "Business Rule : Lost Communication, Fault Descr : Session closed by partner",
-      "In Service to Off-Line",
-      "CommR Dispatch",
-      "Online",
-      "Notification for COMMUNICATION FAILURE",
-      "(5003, critical)",
-      "(113, info)",
-      "(5004, suspect)",
-      "status='C7'",
-      "Terminal Off Line As Of",
-      "Terminal Closed As Of",
-      "Category: Supervisor Dispatch",
-      "Business Rule : Out of Service, Fault Descr : No Load",
-      "(30, suspect)",
-      "Business Rule : Risk Condition, Fault Descr : Excessive txn reversals",
-      "Status code Description :DEVICE IN MAINTENANCE",
-      "Status code Description :DEVICE IS CLOSED" // Notes
-    ],
-    "Depositor": [
-      "Depository Dispatch",
-      "Business Rule : Device Fault, Fault Descr : Depository down",
-      "Notification for DEPOSITORY FAILURE",
-      "(2009, critical)",
-      "Notification for CK/MICR READER FAILURE for Device",
-      " (2211, suspect)",
-      "Business Rule : Device Fault, Fault Descr : Envelope printer down",
-      "Business Rule : Device Fault, Fault Descr : Document depository down",
-      "Business Rule : Printer Paper Other Supply Problems, Fault Descr : Depository low/full",
-      "Status code Description :DEPOSITORY LOW/FULL", // notes
-      "Status code Description :DEPOSITORY DOWN",
-      "Depositor"
-    ],
-    "Dispenser": [
-      "Dispenser Dispatch",
-      "Business Rule : Device Fault, Fault Descr : Cash handler down",
-      "Notification for MULTIPLE DISPENSER FAILURE",
-      "Business Rule : Device Fault, Fault Descr : Cash handler bill jammed",
-      "status='0010'",
-      "status='0008'",
-      "(2001, critical)",
-      "(2005, critical)",
-      "Notification for DIVERT FAILURE",
-      "Category: Cash Out Dispatch",
-      "Business Rule : Device Fault, Fault Descr : Canister",
-      "Business Rule : Device Fault, Fault Descr : Cash hand bills not seen exit",
-      "Notification for DISPENSER FAILURE",
-      "Status code Description :CASH HANDLER DOWN",
-      "Status code Description :CANISTER", // notes
-      "Notification for CASH THRESHOLD LIMIT REACHED"
-    ],
-    "Printer": [
-      "Receipt Printer Dispatch",
-      "(2047, critical)",
-      "Business Rule : Device Fault, Fault Descr : Cons prt head jam/go busy fail",
-      "Business Rule : Device Fault, Fault Descr : Cons prt paper not load or jam",
-      "Business Rule : Printer Paper Other Supply Problems, Fault Descr : Consumer printer fault",
-      "Business Rule : Device Fault, Fault Descr : Consumer prt paper jam",
-      "Status code Description :CONSUMER PRINTER DOWN", //notes
-      "Notification for RECEIPT PRINTER FAILURE"
-    ],
-    "Card Reader": [
-      "Card reader Dispatch",
-      "Business Rule : Out of Service, Fault Descr : Card reader fault",
-      "Notification for EMV CARD READER FAILURE",
-      "(2280, suspect)",
-      "(2020, critical)",
-      "(2281, critical)",
-      "Status code Description :Mult. Card Reader/Writer Warns", // notes
-      "Status code Description :CARD READER/WRITER DOWN", // notes
-    ],
-    "Cassette":[
-      "status='0016'",
-      "Cassettes of type",
-      "(50, critical)"
-    ],
-    "EPP": [
-      "Business Rule : Out of Service, Fault Descr : Encryptor down",
-      "Notification for ENCRYPTION FAILURE for Device",
-      "Category: Encryptor Dispatch"
-    ],
-    "Anti Skimming" : [
-      "Business Rule : Out of Service, Fault Descr : Card skimming fraud detected Hard Fault",
-      "Category: Security Dispatch",
-      "(2031, critical)",
-      "Status code Description :POSSIBLE SKIMMING DEVICE DETECTED" //notes
-    ]
-  };
-
-  // Place this into a different function...
+function getLabel(category){
   const titleValue = document.getElementById('txtTitle').value.trim().toLowerCase();
-  // Create an array from all the notes & select the last element or return an empty a string
   const ticketNotes = Array.from(document.querySelectorAll('.notice_info'));
   const parentNote = ticketNotes.at(-1)?.textContent.trim().toLowerCase() || '';
-  // Create an array based on the set defined strings objects
-  // Look for keywords in title defined by ItemCategories
+
   let selectedLabel = null;
-  for (const [label, keywords] of Object.entries(itemCategories)) {
+  for (const [label, keywords] of Object.entries(category)) {
     for (const keyword of keywords){
       if(titleValue.includes(keyword.toLowerCase()) || (parentNote.includes(keyword.toLowerCase()))){
-        console.log('found a keyword: ', keyword);
         selectedLabel = label;
         break;
       }
     }
     if (selectedLabel) break;
   }
-  console.log('Found a matching label:', selectedLabel);
-  return selectedLabel;
-}
-
-//=======================================================
-// Start: getCompany function
-//=======================================================
-/**
- * Feature: Find common ATM ID naming conventions for the bank
- * Description:
- *  Create a list of strings with label & keywords typically found in the title/descrption
- *  Iterate through this list and see if there is a match then return the selected label if there is a match
- */
-function getCompany(){
-
-  let companyCategories = {
-    "CU Anytime": [
-      'COXK'
-    ],
-    "Southern Michigan Bank and Trust":[
-      'AtmApp:JSout2370'
-    ],
-    "Buckholts State Bank":[
-      'I369000'
-    ]
-  };
-
-  const titleValue = document.getElementById('txtTitle').value.trim().toLowerCase();
-  const ticketNotes = Array.from(document.querySelectorAll('.notice_info'));
-  const parentNote = ticketNotes.at(-1)?.textContent.trim().toLowerCase() || '';
-
-  let selectedLabel = null;
-  for (const [label, keywords] of Object.entries(companyCategories)) {
-    for (const keyword of keywords){
-      if(titleValue.includes(keyword.toLowerCase()) || (parentNote.includes(keyword.toLowerCase()))){
-        console.log('found a keyword: ', keyword);
-        selectedLabel = label;
-        break;
-      }
-    }
-    if (selectedLabel) break;
-  }
-  console.log(selectedLabel);
   return selectedLabel;
 }
 
@@ -373,18 +335,10 @@ function selectCompany(){
   if(!companyDropDown){
     return console.log('EXITED selectCompany FUNCTION: Company dropdown is disabled');
   }
-  let companyLabel = getCompany();
+  let companyLabel = getLabel(companyCategories);
   if(!companyLabel){console.log('EXITED selectCompany FUNCTION: label is null')}
 
-  const ItemOptionsArray = Array.from(companyDropDown.options).map(opt => ({
-    label: opt.textContent.trim(),
-    value: opt.value
-  }));
-  console.log(ItemOptionsArray);
-
-  const matchedOption = ItemOptionsArray.find(
-  opt => opt.label.toLowerCase() === companyLabel.toLowerCase()
-  );
+  const matchedOption = findOption(companyDropDown, companyLabel);
   console.log('Found the specific customer number: ', matchedOption.value);
   companyDropDown.value = matchedOption.value;
   companyDropDown.dispatchEvent(new Event('change', { bubbles: true }));
@@ -418,34 +372,18 @@ function selectLocation(){
  * Description: Turn the dropdown into an array and match keywords/labels based off obj variable
  */
 function selectItem(){
-
-  // Check if this drop down is disabled
   const selectItemDropDown = document.getElementById('ddlSubTypeItem');
   if(selectItemDropDown.disabled){
     return console.log('EXITED FUNCTION: Select Item dropdown is disabled');
   }
-  // Grab the correct label based on title patterns
-  let label = getLabel();
+  // Grab the correct label based on title patterns based on itemCategories
+  let label = getLabel(itemCategories);
   if(!label){
     return console.log('EXITED selectItem FUNCTION: label is null');
   }
-  console.log("New lable:", label);
+  const matchedOption = findOption(selectItemDropDown, label)
 
-  // Create an array based on the dropdown values
-  const ItemOptionsArray = Array.from(selectItemDropDown.options).map(opt => ({
-    label: opt.textContent.trim(),
-    value: opt.value
-  }));
-  console.log(ItemOptionsArray);
-
-  const matchedOption = ItemOptionsArray.find(
-  opt => opt.label.toLowerCase() === label.toLowerCase()
-  );
-
-  console.log("Matched Option:", matchedOption);
-  // Change the select item value
   selectItemDropDown.value = matchedOption.value;
-  // dropdown.dispatchEvent(new Event('change', { bubbles: true }));
   console.log(`Dropdown set to: ${label} (value: ${label})`);
 }
 
