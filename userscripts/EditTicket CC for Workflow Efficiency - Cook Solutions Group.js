@@ -3,7 +3,7 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://cc.cooksolutionsgroup.com/Support/Support/EditTicket*
 // @grant       none
-// @version     1.2.3
+// @version     1.2.4
 // @author      John Ivan Chan & Angel H. Lule Beltran
 // @updateURL   https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
 // @downloadURL https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
@@ -21,7 +21,9 @@ let itemCategories = {
     "Notification for ACTMON",
     "Business Rule : No Transactions Activity, Fault Descr : No transaction activity",
     "ATM Processing Transactions",
-    "ATM Inactive greater than"
+    "ATM Inactive greater than",
+    "ZERO TRANS TERMINAL/8 HOURS",
+    "ZERO TRANS TERMINAL/12 HOURS"
   ],
   "Lost Comms": [
     "comm dispatch",
@@ -123,25 +125,46 @@ let companyCategories = {
   ],
   "Buckholts State Bank":[
     'I369000'
+  ],
+  "Cook Solutions Group":[
+    'Cook Solutions Group'
+  ],
+  "Vibe Credit Union":[
+    'CK55'
   ]
 };
+
 //=====================================================================================================================================================================\\
 //                                                                        Start: Helper & Misc functions
 //=====================================================================================================================================================================\\
 
 //// Grabbed from stackoverflow https://stackoverflow.com/questions/64387549/wait-for-settimeout-to-complete-then-proceed-to-execute-rest-of-the-code - Yousaf
-function wait(seconds) {
+function wait(ms) {
    return new Promise(resolve => {
-      setTimeout(resolve, seconds * 1000);
+      setTimeout(resolve, ms);
    });
+}
+
+async function waitForSelector(selector, timeoutMs = 5000, pollIntervalMs = 100){
+  const startTime = Date.now();
+  while(Date.now() - startTime < timeoutMs){
+    const element = document.querySelector(selector);
+    if(element && element.options.length >= 2){
+      console.log('Found element within timeframe', selector)
+      return element;
+    }
+    await wait(pollIntervalMs);
+  }
+  console.log(`Could not find selector ${selector}`);
+  return null;
 }
 //=======================================================
 // Start: Click save button helper function
 //=======================================================
 function clickSaveButton(){
-    const saveButton = document.querySelector('.EditTicket');
-    saveButton.click();
-    console.log('Clicked save button');
+  const saveButton = document.querySelector('.EditTicket');
+  saveButton.click();
+  console.log('Clicked save button');
 }
 
 //=======================================================
@@ -152,7 +175,6 @@ function checkResources(){
   if(!resourceTable){
     return console.log("No resource table found");
   }
-
   const emptyResource = resourceTable.querySelector('.no-records-found');
   if(emptyResource){
     console.log('There is no resource yet, go ahead and assign');
@@ -169,9 +191,12 @@ function checkResources(){
  * @returns {HTMLOptionElement|null} The matching option or null if not found
  */
 function findOption(dropdown, targetLabel) {
-  return Array.from(dropdown.options).find(option =>
-    option.textContent.trim().toLowerCase() === targetLabel.toLowerCase()
-  );
+  let dropDownArray = Array.from(dropdown.options).find(option =>
+    option.textContent.trim().toLowerCase() === targetLabel.toLowerCase());
+  if(!dropDownArray){
+    return console.log(`FUNCTION findOption: Could not find ${targetLabel} from ${dropdown}.`);
+  }
+  return dropDownArray;
 }
 
 //=======================================================
@@ -209,6 +234,19 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
+document.addEventListener('keydown', function(event) {
+    if (event.ctrlKey && event.key.toLowerCase() === '-') {
+        event.preventDefault(); // Prevent the default save action
+        const assignButton = document.querySelector(".assigntome");
+        main();
+        if(!assignButton.disabled){
+            console.log("Ccking assign to me");
+            assignButton.click();
+        }
+
+    }
+});
+
 // Overrides ctrl + q and brings up add notes modal.
 // Press again to submit the notes. Feel free to change it to whatever.
 document.addEventListener('keydown', function(event){
@@ -228,6 +266,88 @@ document.addEventListener('keydown', function(event){
     }
   }
 });
+
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key.toLowerCase() === 'i') {
+    e.preventDefault();
+    try {
+      const val = customPrompt();
+      addNotes(val);
+    } catch (err) {
+      console.error('Error in custom prompt or adding notes:', err);
+    }
+  }
+});
+
+async function customPrompt(callback) {
+  const overlay = document.createElement('div');
+  overlay.style = `
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.4);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:99999;
+  `;
+
+  const box = document.createElement('div');
+  box.style = `
+    background:#fff;
+    padding:20px;
+    border-radius:8px;
+    max-width:600px;
+    width:80%;
+    box-shadow:0 6px 20px rgba(0,0,0,.25);
+  `;
+
+  box.innerHTML = `
+    <h3>Enter notes</h3>
+    <textarea id="noteInput" style="width:100%;height:100px;"></textarea>
+    <div style="margin-top:10px;text-align:right">
+      <button id="cancelBtn">Cancel</button>
+      <button id="okBtn">OK</button>
+    </div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  function close() {
+    overlay.remove();
+  }
+
+  box.querySelector('#cancelBtn').onclick = close;
+  box.querySelector("#noteInput").focus();
+  box.querySelector('#okBtn').onclick = () => {
+    const val = document.getElementById('noteInput').value;
+    callback(val);
+    close();
+  };
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      close();
+    }
+  });
+
+  // Optional: ESC key cancels
+  document.addEventListener('keydown', function escHandler(e) {
+    if (e.key === 'Escape') {
+      close();
+      document.removeEventListener('keydown', escHandler);
+    }
+  });
+
+  document.addEventListener('keydown', function escHandler(e) {
+    if (e.key === 'Enter') {
+    const val = document.getElementById('noteInput').value;
+    callback(val);
+    close();
+    document.removeEventListener('keydown', escHandler);
+    }
+  });
+}
+
 //=====================================================================================================================================================================\\
 //                                                                        Start: SAN Functions
 //=====================================================================================================================================================================\\
@@ -259,44 +379,32 @@ document.addEventListener('keydown', function(event){
 });
 
 async function closeAsNFF(){
-  const boardDropdown = document.getElementById('ddlBoard');
-  const statusDropDown = document.getElementById('ddlStatus');
-  const itemDropDown = document.getElementById('ddlSubTypeItem');
+  const boardDropDown = await waitForSelector('#ddlBoard');
+  const statusDropDown = await waitForSelector('#ddlStatus');
+  const subTypeDropDown = await waitForSelector('#ddlSubType');
 
-  if (!boardDropdown || !statusDropDown || !itemDropDown){
-    console.log("One of dropdowns not found");
-    return;
-  }
-
-  const sanSelected = findOption(boardDropdown, 'SAN')?.selected;
-  const retroSelected = findOption(boardDropdown, 'SAN - Retroactive')?.selected;
-
+  const sanSelected = findOption(boardDropDown, 'SAN').selected;
+  const retroSelected = findOption(boardDropDown, 'SAN - Retroactive').selected;
   if (!sanSelected && !retroSelected) {
-    console.log('Neither SAN/Retro were selected');
-    return;
+    return console.log('Neither SAN/Retro were selected');
   }
-  await addNotes();
-  console.log('Closing the ticket to no fraud found')
+  console.log('Changing the value for the notes to no fraud found!');
+  addNotes('Video reviewed, no fraud found');
   statusDropDown.value = findOption(statusDropDown, 'closed')?.value;
-  itemDropDown.value = findOption(itemDropDown, 'no fraud found')?.value;
+  subTypeDropDown.value = findOption(subTypeDropDown, 'no fraud found')?.value;
   clickSaveButton();
 }
 
-async function addNotes(){
-
+async function addNotes(notes){
   addSupportNotes(true);
-  console.log('Waiting 1 seconds...');
-  await wait(1);
-  console.log('Finished waiting');
-  console.log('Changing the value for the notes to no fraud found!');
+  await wait(1000);
   const addNotestxt = document.getElementById('txtNoteDescription');
   if(!addNotestxt){
-    console.log('Textbox not found');
-    return;
+    return console.log('Textbox not found');
   }
-  addNotestxt.value = "Video reviewed, no fraud found";
+  addNotestxt.value = notes;
   SubmitNotes(true);
-
+  return;
 }
 //=====================================================================================================================================================================\\
 //                                                                        Start: ATM Functions
@@ -329,39 +437,70 @@ function getLabel(category){
   return selectedLabel;
 }
 
-function selectCompany(){
-
-  let companyDropDown = document.getElementById('ddlSupportCompany');
-  if(!companyDropDown){
-    return console.log('EXITED selectCompany FUNCTION: Company dropdown is disabled');
-  }
+/**
+ * Feature: Interact with #ddlSupportCompany dropdown and auto select an option based on title
+ * Description:
+ *  Identify company drop down, retrieve the label from title and pick the company.
+ */
+async function selectCompany(){
+  let companyDropDown = await waitForSelector('#ddlSupportCompany');
   let companyLabel = getLabel(companyCategories);
-  if(!companyLabel){console.log('EXITED selectCompany FUNCTION: label is null')}
 
-  const matchedOption = findOption(companyDropDown, companyLabel);
-  console.log('Found the specific customer number: ', matchedOption.value);
-  companyDropDown.value = matchedOption.value;
-  companyDropDown.dispatchEvent(new Event('change', { bubbles: true }));
-  console.log(`Dropdown set to: ${companyLabel} (value: ${companyLabel})`);
-
+  if(companyDropDown.selectedIndex === 0){
+    if(companyLabel){
+      companyDropDown.value = findOption(companyDropDown, companyLabel).value;
+      companyDropDown.dispatchEvent(new Event('change', { bubbles: true }));
+      console.log(`Dropdown set to: ${companyLabel} (value: ${companyLabel})`);
+      //await selectLocation(); // Move this eventually to main
+      return true;
+    }
+    console.log(`selectCompany FUNCTION: companyLabel is null - ${companyLabel}`);
+    companyDropDown.value = findOption(companyDropDown, 'Cook Solutions Group').value;
+    companyDropDown.dispatchEvent(new Event('change', { bubbles: true }));
+    return;
+  }
+  return;
 }
 
-function selectLocation(){
+async function addEquipment(){
+  //handleaddNewEquipmentClick();
+}
+/**
+ * Feature: Select the location based on title.
+ * Description:
+ *  Compare an array from the dropdown options and compare to title
+    If the title contains the terminal name, pick that location
+ */
+async function selectLocation(){
   const titleValue = document.getElementById('txtTitle').value.trim().toLowerCase();
   const ticketNotes = Array.from(document.querySelectorAll('.notice_info'));
-  let locationDropDown = document.getElementById('ddLocation');
+  let locationDropDown = await waitForSelector('#ddlLocation');
   if(!locationDropDown){
-    return console.log('EXITED selectLocation FUNCTION: Location dropdown is disabled');
+    return console.log(`EXITED selectLocation FUNCTION: locationDropDown is null: ${locationDropDown}`);
   }
-
-  const ItemOptionsArray = Array.from(companyDropDown.options).map(opt => ({
-    label: opt.textContent.trim(),
-    value: opt.value
+  const ItemOptionsArray = Array.from(locationDropDown.options).map(opt => ({
+    label: opt.textContent,
+    customerNumber: opt.value,
+    terminal: opt.dataset.subtitle3,
+    address: opt.datasetsubtitle + ' ' + opt.dataset.subtitle2
   }));
+  console.log(ItemOptionsArray);
+  console.log("titleValue:", titleValue);
 
-   const matchedOption = ItemOptionsArray.find(
-  opt => opt.label.toLowerCase() === companyLabel.toLowerCase()
+  const matchedOption = ItemOptionsArray.find(
+  opt => titleValue.includes(opt.terminal?.toLowerCase())
   );
+
+  if(!matchedOption){
+    return console.log(`EXITED selectLocation FUNCTION: matchedOption is null: ${matchedOption}`);
+  }
+  console.log(matchedOption);
+  console.log(matchedOption.customerNumber)
+  // Location dropdown #ddlLocation values are CST numbers according to CC.
+  locationDropDown.value = matchedOption.customerNumber;
+  locationDropDown.dispatchEvent(new Event('change', {bubbles: true}));
+  console.log(`Changing dropdown to ${matchedOption.label}`);
+  return;
 }
 
 //=======================================================
@@ -371,20 +510,19 @@ function selectLocation(){
  * Feature: Select the item based on the item drop down options
  * Description: Turn the dropdown into an array and match keywords/labels based off obj variable
  */
-function selectItem(){
-  const selectItemDropDown = document.getElementById('ddlSubTypeItem');
-  if(selectItemDropDown.disabled){
-    return console.log('EXITED FUNCTION: Select Item dropdown is disabled');
+async function selectItem(){
+  const selectItemDropDown = await waitForSelector('#ddlSubTypeItem');
+  if(!selectItemDropDown){
+    return console.log('EXITED selectItem FUNCTION: Item drop down not found.');
   }
-  // Grab the correct label based on title patterns based on itemCategories
+
   let label = getLabel(itemCategories);
   if(!label){
-    return console.log('EXITED selectItem FUNCTION: label is null');
+    return console.log(`EXITED selectItem FUNCTION: ${label} not found.`);
   }
   const matchedOption = findOption(selectItemDropDown, label)
-
   selectItemDropDown.value = matchedOption.value;
-  console.log(`Dropdown set to: ${label} (value: ${label})`);
+  return console.log(`Dropdown set to: ${label} (value: ${label})`);
 }
 
 //=======================================================
@@ -395,33 +533,15 @@ function selectItem(){
  * Description: Function responsible for change state to "in progress"
  */
 async function setStatusToInProgress(){
-  const statusDropDown = document.getElementById('ddlStatus');
+  const statusDropDown = await waitForSelector('#ddlStatus');
   if (!statusDropDown){
-    console.log("Drop down not found");
+    return console.log('EXITED setStatusToInProgress FUNCTION: Status drop down not found.');
   }
 
-  // Changing in-progress value differs from SAN/ITM&ATM tickets. SAN in progres = 610, ITM/ATM in progress = 153.
-  // Change the state based on statetyperecid & trim 'in progress'.
-  await wait(2);
   const inProgressOption = findOption(statusDropDown, 'in progress');
-
-  if(!inProgressOption){
-    console.log('In Progress option not found');
-    return;
-  }
   statusDropDown.value = inProgressOption.value;
-
-  // Play around with this and see if it matters to keep; might be imporant to have that time buffer as the rest of the options appear
-  // statusDropDown.dispatchEvent(new Event('change', {bubbles: true}));
-  console.log('Status changed to In Progress');
-  // Change the type and subtype dropdowns
-  console.log('Changing type and subtype dropdowns');
-  autoChangeType();
-  console.log("Changing Item type");
-  selectItem();
-  console.log('Saving ticket state');
-  setTimeout(clickSaveButton, 1000);
-
+  console.log('setStatusToInProgress FUNCTION: Status changed to In Progress');
+  return;
 }
 
 /**
@@ -430,16 +550,15 @@ async function setStatusToInProgress(){
  *  Attaches a click event listener to "Assign to Me" button
  *  When clicked, triggers delayed call to ticket state "in progress" - (attempts to) prevent multiple listeners with handlerAttched
  */
-function hookAssignButton(){
+async function hookAssignButton(){
   const assignButton = document.querySelector(".assigntome");
-  const saveButton = document.querySelector('.EditTicket');
-
-  // If the button exists and no other listeners
+  let changedCompanyDropDown = await selectCompany();
+  if(changedCompanyDropDown){
+    console.log("hookAssignButton FUNCTION: Changed company");
+  }
   if(assignButton && !assignButton.dataset.handlerAttached) {
     assignButton.addEventListener('click', () => {
-
-      console.log('Assign to Me button clicked');
-      setTimeout(setStatusToInProgress, 4500);
+      main(autoSave = true)
     });
     assignButton.dataset.handlerAttached = true; // attached listener
   }
@@ -449,70 +568,56 @@ function hookAssignButton(){
  * Feature: Change type and subtype option on subtype based on ITM/ATM tickets.
  * Description: Change the "type" & "subtype" portion of the ticket when working on an ATM/ITM ticket as specified on the Board dropdown
  */
-function autoChangeType(){
-  const boardDropDown = document.getElementById('ddlBoard');
-  const typeDropDown = document.getElementById('ddlType');
-  const subtypeDropDown = document.getElementById('ddlSubType');
-  if (!boardDropDown || !typeDropDown || !subtypeDropDown){
-    return console.log("Error finding one of dropdowns");
-  }
-
-  // Change values for type and subtype based on the board value. Essentially looking for "ATM/ITM"
-  // There is no statetyperecid like in Progress drop down but it is 14. Hopefully this is consistent acorss all ATM/ITM tickets.
-  // Find if these exists first before changing
+async function autoChangeType(){
+  const boardDropDown = await waitForSelector('#ddlBoard')
   const ATMITMOption = findOption(boardDropDown, 'atm/itm');
-  // Option for hardware is 73 for type dropdown
-  const hardwareOption = findOption(typeDropDown, 'hardware');
 
-  if(!ATMITMOption || !hardwareOption){
-    console.log('Dropdown options could not be found.');
-  }
-
-  // If the value of the board dropdown is ATM/ITM, then proceed with changing the other values.
-  // Change value of type dropdown to Hardware & subtype dropdown to Network Notification
-  console.log('Board dropdown value: ', boardDropDown.value);
-  console.log('AtmITMoption value:', ATMITMOption.value);
   if(boardDropDown.value === ATMITMOption.value){
-
-    // Change the value to hardware & since subtype dropdown is initially disabled until input, create an event.
-    typeDropDown.value = hardwareOption.value;
+    const typeDropDown = await waitForSelector('#ddlType');
+    typeDropDown.value = findOption(typeDropDown, 'hardware').value;
     typeDropDown.dispatchEvent(new Event('change', {bubbles: true}));
 
-    // Value for "network notification" is 114. Alternatively can just find keywords like prior variables.
-    // This is initially disabled so we wait until there's something for type dropdown.
-    const subtypeOption = findOption(subtypeDropDown, 'network notification');
-    if(!subtypeOption){
-      console.log(subtypeOption, 'could not be found');
-    }
-    subtypeDropDown.value = subtypeOption.value;
-    subtypeOption.dispatchEvent(new Event('change', {bubbles: true}));
-
-    //call save function here
-    console.log('Successfully updated ticket');
+    const subTypeDropDown = await waitForSelector('#ddlSubType');
+    subTypeDropDown.value = findOption(subTypeDropDown, 'network notification').value;
+    subTypeDropDown.dispatchEvent(new Event('change', {bubbles: true}));
+    return console.log('Successfully updated ticket');
   }
+  return console.log("EXITED autoChangeType FUNCTION: Not on ATM/ITM Board.")
 }
 
 window.addEventListener('load', hookAssignButton);
-
 let emptyTicket = null;
-// Set up MutationObserver to observe the DOM
-const bodyObserver = new MutationObserver(() => {
+let autoSave = null;
 
-  // Detect the notes modal when visible after clicking "add notes" then uncheck boxes.
+async function main(autoSave){
+  console.log("FUNCTION main: Changing Ticket");
+  let changedCompanyDropDown = await selectCompany();
+  await Promise.all([
+    setStatusToInProgress(),
+    autoChangeType()
+  ]);
+
+  await selectItem();
+  if(changedCompanyDropDown){
+    await selectLocation();
+    //await addEquipment();
+  }
+
+  if(autoSave){
+    clickSaveButton();
+  }
+  return;
+}
+
+const bodyObserver = new MutationObserver(() => {
   const modal = document.querySelector('#modal-addnote');
   if (!modal.classList.contains('mfp-hide')) {
-    console.log('Add notes modal is visible!');
     handleAddNotesCheckboxes();
   }
-  // Calling Assign Button & change type and subtype dropdowns.
     emptyTicket = checkResources();
-    console.log('emptyTicket:', emptyTicket);
     if(!emptyTicket){
-      console.log("Ticket is taken, returning");
-      return;
+      return console.log("Ticket is taken, returning");
     }
     hookAssignButton();
 });
-
-// Watch all children, direct or not.
 bodyObserver.observe(document.body, { childList: true, subtree: true });
