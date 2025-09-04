@@ -131,6 +131,9 @@ let companyCategories = {
   ],
   "Vibe Credit Union":[
     'CK55'
+  ],
+  "Isabella Bank":[
+    "AtmApp:IB"
   ]
 };
 
@@ -149,7 +152,7 @@ async function waitForSelector(selector, timeoutMs = 5000, pollIntervalMs = 100)
   const startTime = Date.now();
   while(Date.now() - startTime < timeoutMs){
     const element = document.querySelector(selector);
-    if(element && element.options.length >= 2){
+    if(element){
       console.log('Found element within timeframe', selector)
       return element;
     }
@@ -234,12 +237,12 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-document.addEventListener('keydown', function(event) {
+document.addEventListener('keydown', async function(event) {
     if (event.ctrlKey && event.key.toLowerCase() === '-') {
         event.preventDefault(); // Prevent the default save action
         const assignButton = document.querySelector(".assigntome");
-        main();
-        if(!assignButton.disabled){
+        await main();
+        if(!(assignButton.hasAttribute('disabled'))){
             console.log("Ccking assign to me");
             assignButton.click();
         }
@@ -381,7 +384,7 @@ document.addEventListener('keydown', function(event){
 async function closeAsNFF(){
   const boardDropDown = await waitForSelector('#ddlBoard');
   const statusDropDown = await waitForSelector('#ddlStatus');
-  const subTypeDropDown = await waitForSelector('#ddlSubType');
+  const subTypeDropDown = await waitForSelector('#ddlSubTypeItem');
 
   const sanSelected = findOption(boardDropDown, 'SAN').selected;
   const retroSelected = findOption(boardDropDown, 'SAN - Retroactive').selected;
@@ -389,7 +392,7 @@ async function closeAsNFF(){
     return console.log('Neither SAN/Retro were selected');
   }
   console.log('Changing the value for the notes to no fraud found!');
-  addNotes('Video reviewed, no fraud found');
+  await addNotes('Video reviewed, no fraud found');
   statusDropDown.value = findOption(statusDropDown, 'closed')?.value;
   subTypeDropDown.value = findOption(subTypeDropDown, 'no fraud found')?.value;
   clickSaveButton();
@@ -398,13 +401,12 @@ async function closeAsNFF(){
 async function addNotes(notes){
   addSupportNotes(true);
   await wait(1000);
-  const addNotestxt = document.getElementById('txtNoteDescription');
+  const addNotestxt = await waitForSelector('#txtNoteDescription');
   if(!addNotestxt){
     return console.log('Textbox not found');
   }
   addNotestxt.value = notes;
   SubmitNotes(true);
-  return;
 }
 //=====================================================================================================================================================================\\
 //                                                                        Start: ATM Functions
@@ -437,31 +439,6 @@ function getLabel(category){
   return selectedLabel;
 }
 
-/**
- * Feature: Interact with #ddlSupportCompany dropdown and auto select an option based on title
- * Description:
- *  Identify company drop down, retrieve the label from title and pick the company.
- */
-async function selectCompany(){
-  let companyDropDown = await waitForSelector('#ddlSupportCompany');
-  let companyLabel = getLabel(companyCategories);
-
-  if(companyDropDown.selectedIndex === 0){
-    if(companyLabel){
-      companyDropDown.value = findOption(companyDropDown, companyLabel).value;
-      companyDropDown.dispatchEvent(new Event('change', { bubbles: true }));
-      console.log(`Dropdown set to: ${companyLabel} (value: ${companyLabel})`);
-      //await selectLocation(); // Move this eventually to main
-      return true;
-    }
-    console.log(`selectCompany FUNCTION: companyLabel is null - ${companyLabel}`);
-    companyDropDown.value = findOption(companyDropDown, 'Cook Solutions Group').value;
-    companyDropDown.dispatchEvent(new Event('change', { bubbles: true }));
-    return;
-  }
-  return;
-}
-
 async function addEquipment(){
   //handleaddNewEquipmentClick();
 }
@@ -482,7 +459,7 @@ async function selectLocation(){
     label: opt.textContent,
     customerNumber: opt.value,
     terminal: opt.dataset.subtitle3,
-    address: opt.datasetsubtitle + ' ' + opt.dataset.subtitle2
+    address: opt.dataset.subtitle + ' ' + opt.dataset.subtitle2
   }));
   console.log(ItemOptionsArray);
   console.log("titleValue:", titleValue);
@@ -502,6 +479,38 @@ async function selectLocation(){
   console.log(`Changing dropdown to ${matchedOption.label}`);
   return;
 }
+/**
+ * Feature: Interact with #ddlSupportCompany dropdown and auto select an option based on title
+ * Description:
+ *  Identify company drop down, retrieve the label from title and pick the company.
+ */
+async function selectCompany(){
+  let companyDropDown = await waitForSelector('#ddlSupportCompany');
+  if(companyDropDown.options.length <= 2){
+    console.log(`selectCompany FUNCTION: - ${companyDropDown.options.length}`);
+    return;
+  }
+
+  let companyLabel = getLabel(companyCategories);
+  console.log(`${companyLabel}`);
+  if(companyDropDown.selectedIndex === 0){
+    if(companyLabel){
+      companyDropDown.value = findOption(companyDropDown, companyLabel).value;
+      companyDropDown.dispatchEvent(new Event('change', { bubbles: true }));
+      console.log(`Dropdown set to: ${companyLabel} (value: ${companyLabel})`);
+      //await selectLocation(); // Move this eventually to main
+      return true;
+    }
+    console.log(`selectCompany FUNCTION: companyLabel is null - ${companyLabel}`);
+    companyDropDown.value = findOption(companyDropDown, 'Cook Solutions Group').value;
+    companyDropDown.dispatchEvent(new Event('change', { bubbles: true }));
+    return;
+  }
+  console.log("selectCompany FUNCTION: Ticket already has an item selected!");
+  return;
+}
+
+
 
 //=======================================================
 // Start: selectItem function
@@ -523,6 +532,26 @@ async function selectItem(){
   const matchedOption = findOption(selectItemDropDown, label)
   selectItemDropDown.value = matchedOption.value;
   return console.log(`Dropdown set to: ${label} (value: ${label})`);
+}
+/**
+ * Feature: Change type and subtype option on subtype based on ITM/ATM tickets.
+ * Description: Change the "type" & "subtype" portion of the ticket when working on an ATM/ITM ticket as specified on the Board dropdown
+ */
+async function autoChangeType(){
+  const boardDropDown = await waitForSelector('#ddlBoard')
+  const ATMITMOption = findOption(boardDropDown, 'atm/itm');
+
+  if(boardDropDown.value === ATMITMOption.value){
+    const typeDropDown = await waitForSelector('#ddlType');
+    typeDropDown.value = findOption(typeDropDown, 'hardware').value;
+    typeDropDown.dispatchEvent(new Event('change', {bubbles: true}));
+
+    const subTypeDropDown = await waitForSelector('#ddlSubType');
+    subTypeDropDown.value = findOption(subTypeDropDown, 'network notification').value;
+    subTypeDropDown.dispatchEvent(new Event('change', {bubbles: true}));
+    return console.log('Successfully updated ticket');
+  }
+  return console.log("EXITED autoChangeType FUNCTION: Not on ATM/ITM Board.")
 }
 
 //=======================================================
@@ -552,38 +581,16 @@ async function setStatusToInProgress(){
  */
 async function hookAssignButton(){
   const assignButton = document.querySelector(".assigntome");
-  let changedCompanyDropDown = await selectCompany();
-  if(changedCompanyDropDown){
-    console.log("hookAssignButton FUNCTION: Changed company");
-  }
   if(assignButton && !assignButton.dataset.handlerAttached) {
-    assignButton.addEventListener('click', () => {
-      main(autoSave = true)
+    assignButton.addEventListener('click', async () => {
+      console.log('FUNCTION hookAssignButton: Calling Main');
+      await main(autoSave = true);
     });
     assignButton.dataset.handlerAttached = true; // attached listener
   }
 }
 
-/**
- * Feature: Change type and subtype option on subtype based on ITM/ATM tickets.
- * Description: Change the "type" & "subtype" portion of the ticket when working on an ATM/ITM ticket as specified on the Board dropdown
- */
-async function autoChangeType(){
-  const boardDropDown = await waitForSelector('#ddlBoard')
-  const ATMITMOption = findOption(boardDropDown, 'atm/itm');
 
-  if(boardDropDown.value === ATMITMOption.value){
-    const typeDropDown = await waitForSelector('#ddlType');
-    typeDropDown.value = findOption(typeDropDown, 'hardware').value;
-    typeDropDown.dispatchEvent(new Event('change', {bubbles: true}));
-
-    const subTypeDropDown = await waitForSelector('#ddlSubType');
-    subTypeDropDown.value = findOption(subTypeDropDown, 'network notification').value;
-    subTypeDropDown.dispatchEvent(new Event('change', {bubbles: true}));
-    return console.log('Successfully updated ticket');
-  }
-  return console.log("EXITED autoChangeType FUNCTION: Not on ATM/ITM Board.")
-}
 
 window.addEventListener('load', hookAssignButton);
 let emptyTicket = null;
@@ -592,32 +599,36 @@ let autoSave = null;
 async function main(autoSave){
   console.log("FUNCTION main: Changing Ticket");
   let changedCompanyDropDown = await selectCompany();
-  await Promise.all([
-    setStatusToInProgress(),
-    autoChangeType()
-  ]);
-
+  console.log(`changedCompanyDropDown: ${changedCompanyDropDown}`);
+  await setStatusToInProgress();
+  await autoChangeType();
   await selectItem();
+  /*
   if(changedCompanyDropDown){
-    await selectLocation();
+    console.log("Changed Company Drop Down");
+    //await selectLocation();
     //await addEquipment();
   }
-
+*/
   if(autoSave){
-    clickSaveButton();
+    await wait(2000);
+    await clickSaveButton();
   }
-  return;
 }
 
 const bodyObserver = new MutationObserver(() => {
-  const modal = document.querySelector('#modal-addnote');
-  if (!modal.classList.contains('mfp-hide')) {
-    handleAddNotesCheckboxes();
-  }
-    emptyTicket = checkResources();
-    if(!emptyTicket){
-      return console.log("Ticket is taken, returning");
+  (async () => {
+    const modal = document.querySelector('#modal-addnote');
+    if (modal && !modal.classList.contains('mfp-hide')) {
+      handleAddNotesCheckboxes();
     }
-    hookAssignButton();
+    const emptyTicket = checkResources();
+    if (!emptyTicket) {
+      console.log("Ticket is taken, returning");
+      return;
+    }
+    await hookAssignButton();
+  })();
 });
+
 bodyObserver.observe(document.body, { childList: true, subtree: true });
