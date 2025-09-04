@@ -3,11 +3,11 @@
 // @namespace   Violentmonkey Scripts
 // @match       https://cc.cooksolutionsgroup.com/Support/Support/EditTicket*
 // @grant       none
-// @version     1.2.4
+// @version     1.2.5
 // @author      John Ivan Chan & Angel H. Lule Beltran
 // @updateURL   https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
 // @downloadURL https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
-// @description Makes CC 04:47 8/30/25
+// @description Makes CC 04:27 9/4/25
 // ==/UserScript==
 
 
@@ -492,17 +492,20 @@ async function selectCompany(){
   }
 
   let companyLabel = getLabel(companyCategories);
-  console.log(`${companyLabel}`);
   if(companyDropDown.selectedIndex === 0){
     if(companyLabel){
-      companyDropDown.value = findOption(companyDropDown, companyLabel).value;
+      let matchedOption = findOption(companyDropDown, companyLabel);
+      if(!matchedOption){return console.log(`selectCompany FUNCTION: matchedOption is null - ${matchedOption}`)}
+      companyDropDown.value = matchedOption.value;
       companyDropDown.dispatchEvent(new Event('change', { bubbles: true }));
       console.log(`Dropdown set to: ${companyLabel} (value: ${companyLabel})`);
       //await selectLocation(); // Move this eventually to main
       return true;
     }
     console.log(`selectCompany FUNCTION: companyLabel is null - ${companyLabel}`);
-    companyDropDown.value = findOption(companyDropDown, 'Cook Solutions Group').value;
+    let csgOption = findOption(companyDropDown, 'Cook Solutions Group');
+    if(!csgOption){return console.log(`selectCompany FUNCTION: csgOption is null - ${csgOption}`)}
+    companyDropDown.value = csgOption.value;
     companyDropDown.dispatchEvent(new Event('change', { bubbles: true }));
     return;
   }
@@ -584,7 +587,7 @@ async function hookAssignButton(){
   if(assignButton && !assignButton.dataset.handlerAttached) {
     assignButton.addEventListener('click', async () => {
       console.log('FUNCTION hookAssignButton: Calling Main');
-      await main(autoSave = true);
+      await main(true);
     });
     assignButton.dataset.handlerAttached = true; // attached listener
   }
@@ -594,7 +597,6 @@ async function hookAssignButton(){
 
 window.addEventListener('load', hookAssignButton);
 let emptyTicket = null;
-let autoSave = null;
 
 async function main(autoSave){
   console.log("FUNCTION main: Changing Ticket");
@@ -611,7 +613,7 @@ async function main(autoSave){
   }
 */
   if(autoSave){
-    await wait(2000);
+    console.log("Hitting Autosave");
     await clickSaveButton();
   }
 }
