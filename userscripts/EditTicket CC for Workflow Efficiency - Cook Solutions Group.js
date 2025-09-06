@@ -7,7 +7,7 @@
 // @author      John Ivan Chan & Angel H. Lule Beltran
 // @updateURL   https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
 // @downloadURL https://github.com/Jicxer/CSG/blob/main/userscripts/EditTicket%20CC%20for%20Workflow%20Efficiency%20-%20Cook%20Solutions%20Group.js
-// @description Makes CC 04:27 9/4/25
+// @description Makes CC 05:59 9/6/25
 // ==/UserScript==
 
 
@@ -44,6 +44,10 @@ let itemCategories = {
     "(30, suspect)",
     "Business Rule : Risk Condition, Fault Descr : Excessive txn reversals",
     "Status code Description :DEVICE IN MAINTENANCE",
+    "Terminal in Supervisor As Of",
+    "Last Transaction Reversed As Of",
+    "Status code Description :KEY SYNC ERROR", // notes
+    "Status Code Description: ATM OUT OF SERVICE", // Notes
     "Status code Description :DEVICE IS CLOSED" // Notes
   ],
   "Depositor": [
@@ -52,12 +56,14 @@ let itemCategories = {
     "Notification for DEPOSITORY FAILURE",
     "(2009, critical)",
     "Notification for CK/MICR READER FAILURE for Device",
-    " (2211, suspect)",
+    "(2211, suspect)",
     "Business Rule : Device Fault, Fault Descr : Envelope printer down",
     "Business Rule : Device Fault, Fault Descr : Document depository down",
     "Business Rule : Printer Paper Other Supply Problems, Fault Descr : Depository low/full",
     "Status code Description :DEPOSITORY LOW/FULL", // notes
+    "Status Code Description: USB Scalable Deposit Module 2", // notes
     "Status code Description :DEPOSITORY DOWN",
+    "Notification for CASH ACCEPTOR FAILURE",
     "Depositor"
   ],
   "Dispenser": [
@@ -76,7 +82,8 @@ let itemCategories = {
     "Notification for DISPENSER FAILURE",
     "Status code Description :CASH HANDLER DOWN",
     "Status code Description :CANISTER", // notes
-    "Notification for CASH THRESHOLD LIMIT REACHED"
+    "Notification for CASH THRESHOLD LIMIT REACHED",
+    "Business Rule : Device Fault, Fault Descr : Cash hand bills not seen at exit"
   ],
   "Printer": [
     "Receipt Printer Dispatch",
@@ -106,6 +113,7 @@ let itemCategories = {
   "EPP": [
     "Business Rule : Out of Service, Fault Descr : Encryptor down",
     "Notification for ENCRYPTION FAILURE for Device",
+    "Status code Description :ENCRYPTOR DOWN", // notes
     "Category: Encryptor Dispatch"
   ],
   "Anti Skimming" : [
@@ -134,6 +142,13 @@ let companyCategories = {
   ],
   "Isabella Bank":[
     "AtmApp:IB"
+  ],
+  "River Run":[
+    'U803F',
+    'U5520'
+  ],
+  "Coastal Community Bank":[
+    'P470'
   ]
 };
 
@@ -244,6 +259,7 @@ document.addEventListener('keydown', async function(event) {
         await main();
         if(!(assignButton.hasAttribute('disabled'))){
             console.log("Ccking assign to me");
+            //unhookAssignButton();
             assignButton.click();
         }
 
@@ -455,12 +471,28 @@ async function selectLocation(){
   if(!locationDropDown){
     return console.log(`EXITED selectLocation FUNCTION: locationDropDown is null: ${locationDropDown}`);
   }
+
+  const timeout = 5000; // 10 seconds
+  const interval = 500; // check every 500ms
+  let elapsed = 0;
+
+  while (locationDropDown.options.length <= 2 && elapsed < timeout) {
+    console.log(`Waiting for dropdown options to load... current length: ${locationDropDown.options.length}`);
+    await wait(interval);
+    elapsed += interval;
+  }
+
+  if (locationDropDown.options.length <= 2) {
+    return console.log(`EXITED selectLocation FUNCTION: Dropdown options did not load in time. Final length: ${locationDropDown.options.length}`);
+  }
+
   const ItemOptionsArray = Array.from(locationDropDown.options).map(opt => ({
     label: opt.textContent,
     customerNumber: opt.value,
     terminal: opt.dataset.subtitle3,
     address: opt.dataset.subtitle + ' ' + opt.dataset.subtitle2
   }));
+
   console.log(ItemOptionsArray);
   console.log("titleValue:", titleValue);
 
@@ -477,7 +509,6 @@ async function selectLocation(){
   locationDropDown.value = matchedOption.customerNumber;
   locationDropDown.dispatchEvent(new Event('change', {bubbles: true}));
   console.log(`Changing dropdown to ${matchedOption.label}`);
-  return;
 }
 /**
  * Feature: Interact with #ddlSupportCompany dropdown and auto select an option based on title
@@ -507,10 +538,10 @@ async function selectCompany(){
     if(!csgOption){return console.log(`selectCompany FUNCTION: csgOption is null - ${csgOption}`)}
     companyDropDown.value = csgOption.value;
     companyDropDown.dispatchEvent(new Event('change', { bubbles: true }));
-    return;
+    return false;
   }
   console.log("selectCompany FUNCTION: Ticket already has an item selected!");
-  return;
+  return false;
 }
 
 
@@ -586,13 +617,20 @@ async function hookAssignButton(){
   const assignButton = document.querySelector(".assigntome");
   if(assignButton && !assignButton.dataset.handlerAttached) {
     assignButton.addEventListener('click', async () => {
-      console.log('FUNCTION hookAssignButton: Calling Main');
-      await main(true);
+      //await main(true);
     });
     assignButton.dataset.handlerAttached = true; // attached listener
   }
 }
 
+async function unhookAssignButton() {
+  const assignButton = document.querySelector(".assigntome");
+  if (assignButton && assignButton.dataset.handlerAttached) {
+    assignButton.removeEventListener('click', assignClickHandler);
+    delete assignButton.dataset.handlerAttached;
+    console.log('Assign button listener removed');
+  }
+}
 
 
 window.addEventListener('load', hookAssignButton);
@@ -605,13 +643,13 @@ async function main(autoSave){
   await setStatusToInProgress();
   await autoChangeType();
   await selectItem();
-  /*
+
   if(changedCompanyDropDown){
     console.log("Changed Company Drop Down");
-    //await selectLocation();
+    await selectLocation();
     //await addEquipment();
   }
-*/
+
   if(autoSave){
     console.log("Hitting Autosave");
     await clickSaveButton();
